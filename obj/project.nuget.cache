@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "OMhqqNEw9hrOpgmdRbuu+nRpA5G7ejjGCMR0paSt7C08CQAR7BRGJxYuUfzh4OsHQDy6ze7bE01Ps3gN0P1QyA==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Count\\Documents\\projects\\dotdotdot\\dotdotdot.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Count\\.nuget\\packages\\sharpziplib\\1.3.1\\sharpziplib.1.3.1.nupkg.sha512"
+  ],
+  "logs": []
+}
