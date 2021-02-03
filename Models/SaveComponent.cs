@@ -2,7 +2,7 @@ using System;
 
 namespace dotdotdot.Models
 {
-    public class SaveComponent : SaveObject
+    public class SaveComponent : WorldObjectData
     {
         public string parentEntityName;
     }

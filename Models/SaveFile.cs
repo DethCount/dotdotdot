@@ -18,6 +18,7 @@ namespace dotdotdot.Models
         public Int32 worldObjectLength;
         public Int32 worldObjectCount;
         public WorldObject[] worldObjects;
+        public Int32 worldObjectsPropertiesLength;
         public Int32 worldObjectPropertyCount;
     }
 }

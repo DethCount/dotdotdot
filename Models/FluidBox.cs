@@ -2,7 +2,8 @@ using System;
 
 namespace dotdotdot.Models
 {
-    public class SaveObject
+    public class FluidBox
     {
+        public float value;
     }
 }

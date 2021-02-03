@@ -82,8 +82,8 @@
                     <tr>
                         <td>@Html.Encode(item.type)</td>
                         <td>@Html.Encode(item.typePath)</td>
-                        <td>@Html.Encode(item.rootObject)</td>
-                        <td>@Html.Encode(item.instanceName)</td>
+                        <td>@Html.Encode(item.id.rootObject)</td>
+                        <td>@Html.Encode(item.id.instanceName)</td>
                         <td>
                             <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#object-data-@(i)" role="button" aria-expanded="false" aria-controls="object-data-@(i)">View details</button>
                             <div class="collapse" id="object-data-@(i)">
