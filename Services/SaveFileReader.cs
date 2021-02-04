@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 
@@ -11,6 +12,12 @@ namespace dotdotdot.Services
 {
     public class SaveFileReader : ISaveFileReader
     {
+        private readonly ILogger<SaveFileReader> _logger;
+
+        public SaveFileReader(ILogger<SaveFileReader> logger) {
+            _logger = logger;
+        }
+
         public string GetBasePath()
         {
             return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
@@ -73,10 +80,18 @@ namespace dotdotdot.Services
             for (int i = 0; i < f.worldObjectCount; i++) {
                 long startProperties = worldObjectSrc.Position;
                 f.worldObjects[i].propertiesLength = ReadNextInt32(worldObjectSrc);
+                Int32 l = f.worldObjects[i].propertiesLength;
 
-                if (i == 1299) {
-                    // debug
+                /* debug
+                if (i == 7908) {
+                    byte[] datablock = new byte[f.worldObjects[i].propertiesLength];
+                    long pos = worldObjectSrc.Position;
+                    //worldObjectSrc.Position = pos + l - 1024;
+                    string block = ReadNextString(worldObjectSrc, l);
+                    worldObjectSrc.Position = pos;
+                    string str = f.worldObjects[i].id.instanceName;
                 }
+                //*/
 
                 try {                    
                     f.worldObjects[i].properties = ReadNextWorldObjectProperties(worldObjectSrc, f.worldObjects[i]);
@@ -157,6 +172,10 @@ namespace dotdotdot.Services
                 for (int i = 0; i < ((SaveEntity) obj.value).childrenCount; i++) {
                     WorldObjectRef child = ReadNextWorldObjectRef(src);
                     if (child != null) {
+                        if (((SaveEntity) obj.value).children == null) {
+                            ((SaveEntity) obj.value).children = new List<WorldObjectRef>();
+                        }
+
                         ((SaveEntity) obj.value).children.Add(child);
                     }
                 }
@@ -169,6 +188,15 @@ namespace dotdotdot.Services
                 }
 
                 properties.Add(prop);
+                long notReaded = propertiesStartPosition + obj.propertiesLength - src.Position;
+
+                /*
+                if (notReaded < 20) {
+                    long pos = src.Position;
+                    string str = ReadNextString(src, (int) notReaded);
+                    src.Position = pos;
+                }
+                */
             }
 
             long missingBytes = propertiesStartPosition + obj.propertiesLength - src.Position;
@@ -213,137 +241,92 @@ namespace dotdotdot.Services
             string type, 
             string? subType = null, 
             bool firstValue = true,
-            bool inArray = false
+            bool inArray = false,
+            bool inMap = false
         ) {
             object value;
+            string firstSubType = subType;
+            string secondSubType = null;
+
+            if (firstValue) {
+                if (subType == null 
+                    && (
+                        type == "StructProperty"
+                        || type == "ArrayProperty"
+                        || type == "MapProperty"
+                        || (!inArray && type == "ByteProperty")
+                        || (!inMap && type == "EnumProperty")
+                    )
+                ) {
+                    firstSubType = ReadNextString(src);
+                }
+
+                if (type == "MapProperty") {
+                    secondSubType = ReadNextString(src);
+                }
+                
+                if (!inMap && type == "StructProperty") {
+                    Guid guid = ReadNextGuid(src); // skip guid
+                }
+
+                if (!inMap 
+                    && (
+                        !inArray
+                        || (
+                            type != "InterfaceProperty" 
+                            && type != "ObjectProperty"
+                            && type != "ByteProperty"
+                            && type != "IntProperty"
+                        )
+                    )
+                ) {
+                    src.Position++; // unk
+                }
+            }
+
             switch (type) {
                 case "FloatProperty":
-                    src.Position++; // unk3
                     value = ReadNextFloat32(src);
                     break;
                 case "IntProperty":
-                    src.Position++; // unk3
                     value = ReadNextInt32(src);
                     break;
                 case "Int8Property":
-                    src.Position++; // unk3
                     value = ReadNextByte(src);
                     break;
                 case "Int64Property":
-                    src.Position++; // unk3
                     value = ReadNextInt64(src);
                     break;
                 case "ByteProperty":
-                    string byteType = subType != null ? subType : ReadNextString(src);
-                    src.Position++; // unk3
-                    value = byteType == "None" 
-                        ? ReadNextInt32(src) 
+                    value = (firstSubType == "None" || firstSubType == null)
+                        ? ReadNextByte(src)
                         : ReadNext(src, ReadNextInt32(src));
                     break;
                 case "BoolProperty":
                     value = ReadNextByte(src) > 0;
-                    src.Position++; // unk3
                     break;
                 case "StrProperty":
                 case "NameProperty":
-                    src.Position++; // unk3
+                case "EnumProperty":
                     value = ReadNextString(src);
                     break;
                 case "TextProperty":
-                    if (!inArray) {
-                        src.Position++;
-                    }
-
                     value = ReadNextWorldObjectTextProperty(src);
                     break;
                 case "ArrayProperty":
-                    value = ReadNextWorldObjectArrayProperty(src);
+                    value = ReadNextWorldObjectArrayProperty(src, firstSubType);
                     break;
-                case "EnumProperty":
-                    throw new NotImplementedException(type);
                 case "StructProperty":
-                    string structType = subType;
-                    if (structType == null) {
-                        structType = ReadNextString(src);
-                    }
-
-                    if (firstValue) {
-                        src.Position += 17; // skip guid + unk
-                    }
-
-                    switch (structType) {
-                        case "Vector2D":
-                            value = ReadNextVector2D(src);
-                            break;
-                        case "Rotator":
-                            value = ReadNextRotator(src);
-                            break;
-                        case "Vector":
-                            value = ReadNextVector(src);
-                            break;
-                        case "LinearColor":
-                            value = ReadNextLinearColor(src);
-                            break;
-                        case "Color":
-                            value = ReadNextColor(src);
-                            break;
-                        case "Box":
-                            value = ReadNextBox(src);
-                            break;
-                        case "Quat":
-                            value = ReadNextQuat(src);
-                            break;
-                        case "InventoryItem":
-                            value = ReadNextInventoryItem(src);
-                            break;
-                        case "RailroadTrackPosition":
-                            value = ReadNextRailroadTrackPosition(src);
-                            break;
-                        case "Guid":
-                            value = ReadNextGuid(src);
-                            break;
-                        case "FluidBox":
-                            value = ReadNextFluidBox(src);
-                            break;
-                        case "FINNetworkTrace":
-                            value = ReadNextFINNetworkTrace(src);
-                            break;
-                        case "RemovedInstanceArray":
-                        case "InventoryStack":
-                        case "Items":
-                        case "PhaseCost":
-                        case "ItemAmount":
-                        case "ResearchCost":
-                        case "CompletedResearch":
-                        case "ResearchRecipeReward":
-                        case "ItemFoundData":
-                        case "RecipeAmountStruct":
-                        case "MessageData":
-                        case "SplinePointData":
-                        case "FICFloatAttribute":
-                        case "FFCompostingTask":
-                        case "FFSeedExtrationTask":
-                        case "FFSlugBreedTask":
-                        default:
-                            value = ReadNextWorldObjectStructProperty(src, structType);
-                            break;
-                    }
+                    value = ReadNextWorldObjectStructProperty(src, firstSubType);
                     break;
                 case "MapProperty":
-                    throw new NotImplementedException(type);
+                    value = ReadNextWorldObjectMapProperty(src, firstSubType, secondSubType);
+                    break;
                 case "SetProperty":
                     throw new NotImplementedException(type);
                 case "ObjectProperty":
-                    if (!inArray) {
-                        src.Position++; // skip unk
-                    }
-                    value = ReadNextWorldObjectObjectProperty(src);
-                    break;
                 case "InterfaceProperty":
-                    if (!inArray) {
-                        src.Position++; // skip unk
-                    }
-                    value = ReadNextWorldObjectInterfaceProperty(src);
+                    value = ReadNextWorldObjectRef(src);
                     break;
                 default:
                     throw new NotImplementedException(type);
@@ -360,7 +343,7 @@ namespace dotdotdot.Services
             return prop;
         }
 
-        public WorldObjectStructProperty ReadNextWorldObjectStructProperty(Stream src, string type)
+        public WorldObjectStructProperty ReadNextWorldObjectDynamicStructProperty(Stream src, string? type = null)
         {
             WorldObjectStructProperty structProp = new WorldObjectStructProperty();
             structProp.type = type;
@@ -570,12 +553,11 @@ namespace dotdotdot.Services
             return t;
         }
 
-        public WorldObjectArrayProperty ReadNextWorldObjectArrayProperty(Stream src)
+        public WorldObjectArrayProperty ReadNextWorldObjectArrayProperty(Stream src, string type)
         {
             WorldObjectArrayProperty arr = new WorldObjectArrayProperty();
 
-            arr.type = ReadNextString(src);
-            src.Position += 1; // skip unk
+            arr.type = type;
             arr.length = ReadNextInt32(src);
             if (arr.type == "StructProperty") {
                 arr.property = ReadNextWorldObjectProperty(src, arr.length);
@@ -587,6 +569,79 @@ namespace dotdotdot.Services
             }
 
             return arr;
+        }
+
+        public object ReadNextWorldObjectStructProperty(Stream src, string type)
+        {
+            object value;
+
+            switch (type) {
+                case "Vector2D":
+                    value = ReadNextVector2D(src);
+                    break;
+                case "Rotator":
+                    value = ReadNextRotator(src);
+                    break;
+                case "Vector":
+                    value = ReadNextVector(src);
+                    break;
+                case "LinearColor":
+                    value = ReadNextLinearColor(src);
+                    break;
+                case "Color":
+                    value = ReadNextColor(src);
+                    break;
+                case "Box":
+                    value = ReadNextBox(src);
+                    break;
+                case "Quat":
+                    value = ReadNextQuat(src);
+                    break;
+                case "InventoryItem":
+                    value = ReadNextInventoryItem(src);
+                    break;
+                case "RailroadTrackPosition":
+                    value = ReadNextRailroadTrackPosition(src);
+                    break;
+                case "Guid":
+                    value = ReadNextGuid(src);
+                    break;
+                case "FluidBox":
+                    value = ReadNextFluidBox(src);
+                    break;
+                case "FINNetworkTrace":
+                    value = ReadNextFINNetworkTrace(src);
+                    break;
+                default:
+                    value = ReadNextWorldObjectDynamicStructProperty(src, type);
+                    break;
+            }
+
+            return value;
+        }
+
+        public Dictionary<object,object> ReadNextWorldObjectMapProperty(
+            Stream src, 
+            string keyType, 
+            string valueType
+        ) {
+            Int32 unk1 = ReadNextInt32(src);
+            Int32 length = ReadNextInt32(src);
+            Dictionary<object,object> values = new Dictionary<object,object>();
+            for (int i = 0; i < length; i++) {
+                object key = ReadNextWorldObjectPropertyValue(src, keyType, null, i==0, true, true);
+                object value = null;
+                
+                if (valueType == "StructProperty") {
+                    value = ReadNextWorldObjectDynamicStructProperty(src);
+                } else {
+                    value = ReadNextWorldObjectPropertyValue(src, valueType, null, i==0, true, true);
+                }
+
+                values.Add(key, value);
+            }
+
+            return values;
         }
 
         public WorldObjectTextProperty ReadNextWorldObjectTextProperty(Stream src)
@@ -635,7 +690,7 @@ namespace dotdotdot.Services
             
             int effectiveLength = Math.Abs(len) - 1;
 
-            if (effectiveLength > 1024*1024) { // 1Gb
+            if (effectiveLength > 2048*1024) { // 2Gb
                 throw new NotImplementedException("too big string skipped");
             }
 
