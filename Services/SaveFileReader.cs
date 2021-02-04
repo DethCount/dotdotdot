@@ -20,12 +20,19 @@ namespace dotdotdot.Services
 
         public string GetBasePath()
         {
-            return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-                + "\\FactoryGame\\Saved\\SaveGames\\";
+            return Path.GetFullPath(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+                + "\\FactoryGame\\Saved\\SaveGames\\"
+            );
         }
 
         public SaveFile Read(string filepath)
         {
+            filepath = Path.GetFullPath(filepath);
+            if (!filepath.StartsWith(GetBasePath())) {
+                throw new IOException("File not found");
+            }
+
             FileStream src = new FileStream(
                 filepath,
                 FileMode.Open, 
@@ -76,7 +83,7 @@ namespace dotdotdot.Services
             }
 
             int count = ReadNextInt32(worldObjectSrc);
-            //worldObjectSrc.Position += 4; // skip worldObjectCount doublon
+            
             for (int i = 0; i < f.worldObjectCount; i++) {
                 long startProperties = worldObjectSrc.Position;
                 f.worldObjects[i].propertiesLength = ReadNextInt32(worldObjectSrc);
@@ -95,8 +102,8 @@ namespace dotdotdot.Services
 
                 try {                    
                     f.worldObjects[i].properties = ReadNextWorldObjectProperties(worldObjectSrc, f.worldObjects[i]);
-                } catch (Exception e) {
-                    worldObjectSrc.Position = startProperties + f.worldObjects[i].propertiesLength;
+                } catch (Exception) {
+                    throw;
                 }
             }
 
@@ -239,7 +246,7 @@ namespace dotdotdot.Services
         public object ReadNextWorldObjectPropertyValue(
             Stream src, 
             string type, 
-            string? subType = null, 
+            string subType = null, 
             bool firstValue = true,
             bool inArray = false,
             bool inMap = false
@@ -334,8 +341,10 @@ namespace dotdotdot.Services
 
             return value;
         }
-        public NamedWorldObjectProperty ReadNextNamedWorldObjectProperty(Stream src, string name = null)
-        {
+        public NamedWorldObjectProperty ReadNextNamedWorldObjectProperty(
+            Stream src, 
+            string name = null
+        ) {
             NamedWorldObjectProperty prop = new NamedWorldObjectProperty();
             prop.name = name != null ? name :  ReadNextString(src);
             prop.value = ReadNextWorldObjectProperty(src);
@@ -343,8 +352,10 @@ namespace dotdotdot.Services
             return prop;
         }
 
-        public WorldObjectStructProperty ReadNextWorldObjectDynamicStructProperty(Stream src, string? type = null)
-        {
+        public WorldObjectStructProperty ReadNextWorldObjectDynamicStructProperty(
+            Stream src, 
+            string type = null
+        ) {
             WorldObjectStructProperty structProp = new WorldObjectStructProperty();
             structProp.type = type;
             structProp.properties = new List<WorldObjectProperty>();

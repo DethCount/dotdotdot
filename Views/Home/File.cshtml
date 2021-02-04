@@ -80,51 +80,53 @@
                 @foreach (var item in ((SaveFile) ViewData["saveFile"]).worldObjects)
                 {
                     <tr>
-                        <td>@Html.Encode(item.type)</td>
-                        <td>@Html.Encode(item.typePath)</td>
-                        <td>@Html.Encode(item.id.rootObject)</td>
-                        <td>@Html.Encode(item.id.instanceName)</td>
+                        <td>@(item.type)</td>
+                        <td>@(item.typePath)</td>
+                        <td>@(item.id.rootObject)</td>
+                        <td>@(item.id.instanceName)</td>
                         <td>
                             <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#object-data-@(i)" role="button" aria-expanded="false" aria-controls="object-data-@(i)">View details</button>
-                            <div class="collapse" id="object-data-@(i)">
-                                <table>
-                                    <thead>
-                                        <th>Field</th>
-                                        <th>Value</th>
-                                    </thead>
-                                    <tbody>
-                                        @if (item.value.GetType() == typeof(SaveEntity))
-                                        {
-                                            <tr>
-                                                <td>Needs transform ?</td>
-                                                <td>@Html.Encode(((SaveEntity) item.value).needTransform)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Rotation</td>
-                                                <td>@Html.Encode(((SaveEntity) item.value).rotation)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Position</td>
-                                                <td>@Html.Encode(((SaveEntity) item.value).position)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Scale</td>
-                                                <td>@Html.Encode(((SaveEntity) item.value).scale)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Was placed in level ?</td>
-                                                <td>@Html.Encode(((SaveEntity) item.value).wasPlacedInLevel)</td>
-                                            </tr>
-                                        } 
-                                        else if (item.value.GetType() == typeof(SaveComponent)) {
-                                            <tr>
-                                                <td>Parent entity name</td>
-                                                <td>@Html.Encode(((SaveComponent) item.value).parentEntityName)</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
+                        </td>
+                    </tr>
+                    <tr class="collapse" id="object-data-@(i)">
+                        <td colspan="5">
+                            <table>
+                                <thead>
+                                    <th>Field</th>
+                                    <th>Value</th>
+                                </thead>
+                                <tbody>
+                                    @if (item.value.GetType() == typeof(SaveEntity))
+                                    {
+                                        <tr>
+                                            <td>Needs transform ?</td>
+                                            <td>@(((SaveEntity) item.value).needTransform)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Rotation</td>
+                                            <td>@(((SaveEntity) item.value).rotation)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Position</td>
+                                            <td>@(((SaveEntity) item.value).position)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Scale</td>
+                                            <td>@(((SaveEntity) item.value).scale)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Was placed in level ?</td>
+                                            <td>@(((SaveEntity) item.value).wasPlacedInLevel)</td>
+                                        </tr>
+                                    } 
+                                    else if (item.value.GetType() == typeof(SaveComponent)) {
+                                        <tr>
+                                            <td>Parent entity name</td>
+                                            <td>@(((SaveComponent) item.value).parentEntityName)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
                         </td>
                     </tr>
                     
