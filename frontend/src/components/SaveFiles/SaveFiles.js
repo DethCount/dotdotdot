@@ -6,13 +6,11 @@ export default {
       loaded: false
     }
   },
-  mounted () {
-    console.log('mounted', this.$store)
+  created () {
     this.$store.dispatch('loadSaveFiles')
     this.$store.watch(
       (state, getters) => state.saveFilesLoaded,
       (newValue, oldValue) => {
-        console.log('check', newValue, oldValue)
         if (newValue === true) {
           this.items = this.$store.state.saveFiles.files
           this.loaded = true

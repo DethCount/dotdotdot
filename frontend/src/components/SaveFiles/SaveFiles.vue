@@ -3,7 +3,7 @@
         <h1>Save Files</h1>
         <table v-if="loaded" class="table table-striped">
             <thead>
-                <th>Save file</th>
+                <th>Path</th>
                 <th>Last Modified</th>
             </thead>
             <tbody>

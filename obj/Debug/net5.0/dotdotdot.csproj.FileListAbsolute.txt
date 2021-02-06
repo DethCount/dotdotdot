@@ -44,3 +44,4 @@ C:\Users\Count\Documents\projects\dotdotdot\bin\Debug\net5.0\frontend\package.js
 C:\Users\Count\Documents\projects\dotdotdot\bin\Debug\net5.0\package.json
 C:\Users\Count\Documents\projects\dotdotdot\obj\Debug\net5.0\Razor\Views\SaveFile\List.cshtml.g.cs
 C:\Users\Count\Documents\projects\dotdotdot\obj\Debug\net5.0\Razor\Views\SaveFile\Read.cshtml.g.cs
+C:\Users\Count\Documents\projects\dotdotdot\bin\Debug\net5.0\package-lock.json
