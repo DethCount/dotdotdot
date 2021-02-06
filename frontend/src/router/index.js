@@ -3,6 +3,14 @@ import Home from '../views/Home.vue'
 
 const routes = [
   {
+    path: '/file/:filename',
+    name: 'SaveFileRead',
+    props: true,
+    component: function () {
+      return import('../views/SaveFile/Read.vue')
+    }
+  },
+  {
     path: '/',
     name: 'Home',
     component: Home

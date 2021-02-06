@@ -26,69 +26,128 @@ namespace dotdotdot.Services
             );
         }
 
-        public SaveFile Read(string filepath)
+        public Stream GetStreamFromFilepath(string filepath)
         {
             filepath = Path.GetFullPath(filepath);
             if (!filepath.StartsWith(GetBasePath())) {
                 throw new IOException("File not found");
             }
 
-            FileStream src = new FileStream(
+            return new FileStream(
                 filepath,
                 FileMode.Open, 
                 FileAccess.Read
             );
-                
-            SaveFile f = ReadNextSaveFile(src);
-            f.filepath = filepath;
-
-            return f;
         }
 
-        public SaveFile ReadNextSaveFile(Stream src)
+        public SaveFile Read(string filepath)
         {
-            SaveFile f = new SaveFile();
+            return ReadNextSaveFile(
+                GetStreamFromFilepath(filepath)
+            );
+        }
 
-            f.saveHeaderVersion = ReadNextInt32(src);
-            f.saveVersion = ReadNextInt32(src);
-            f.buildVersion = ReadNextInt32(src);
-            f.worldType = ReadNextString(src);
-            f.worldProperties = ReadNextString(src);
-            f.sessionName = ReadNextString(src);
-            f.playTime = ReadNextInt32(src);
-            f.saveDate = new DateTime((long) ReadNextInt64(src));
-            f.sessionVisibility = ReadNextByte(src);
-            
-            MemoryStream worldObjectSrc = new MemoryStream();
+        public SaveFileHeader ReadHeader(string filepath)
+        {
+            return ReadNextSaveFileHeader(
+                GetStreamFromFilepath(filepath)
+            );
+        }
+        
+        public SaveFileObjects ReadObjects(string filepath)
+        {
+            MemoryStream worldObjectsSrc = new MemoryStream();
 
-            long uncompressedSize = 0;
+            return ReadNextSaveFileObjects(
+                GetStreamFromFilepath(filepath),
+                worldObjectsSrc,
+                true
+            );
+        }
+
+        public SaveFileHeader ReadNextSaveFileHeader(Stream src)
+        {
+            SaveFileHeader header = new SaveFileHeader();
+
+            header.saveHeaderVersion = ReadNextInt32(src);
+            header.saveVersion = ReadNextInt32(src);
+            header.buildVersion = ReadNextInt32(src);
+            header.worldType = ReadNextString(src);
+            header.worldProperties = ReadNextString(src);
+            header.sessionName = ReadNextString(src);
+            header.playTime = ReadNextInt32(src);
+            header.saveDate = new DateTime((long) ReadNextInt64(src));
+            header.sessionVisibility = ReadNextByte(src);
+
+            return header;
+        }
+
+        public void SkipHeader(Stream src)
+        {
+            src.Position += 12;
+            src.Position = Math.Abs(ReadNextInt32(src)) + src.Position;
+            src.Position = Math.Abs(ReadNextInt32(src)) + src.Position;
+            src.Position = Math.Abs(ReadNextInt32(src)) + src.Position;
+            src.Position += 13;
+        }
+        public void SkipObjects(Stream src, Stream worldObjectSrc)
+        {
+            UnzipSaveFileObjects(src, worldObjectSrc);
+            src.Dispose();
+            worldObjectSrc.Position = 0;
+
+            Int32 objectsLength = ReadNextInt32(worldObjectSrc);
+            src.Position += objectsLength;
+        }
+
+        public void UnzipSaveFileObjects(Stream src, Stream dest)
+        {
             while (src.Position < src.Length)
             {
                 SaveFileChunkHeader header = ReadNextSaveFileChunkHeader(src);
                 long start = src.Position;
-                unzip(src, worldObjectSrc);
+                unzip(src, dest);
                 src.Position = start + header.currentChunkCompressedLength;
-                uncompressedSize += header.currentChunkUncompressedLength;
             }
+        }
+
+        
+        public SaveFileObjects ReadNextSaveFileObjects(
+            Stream src,
+            Stream worldObjectSrc,
+            bool skipPreviousBlocks = true
+        ) {
+            SaveFileObjects objects = new SaveFileObjects();
+
+            if (skipPreviousBlocks) {
+                SkipHeader(src);
+            }
+
+            UnzipSaveFileObjects(src, worldObjectSrc);
 
             src.Dispose();
             worldObjectSrc.Position = 0;
 
-            f.worldObjectLength = ReadNextInt32(worldObjectSrc);
-            f.worldObjectCount = ReadNextInt32(worldObjectSrc);
-            f.worldObjects = new WorldObject[f.worldObjectCount];
+            objects.size = ReadNextInt32(worldObjectSrc);
+            objects.count = ReadNextInt32(worldObjectSrc);
+            objects.objects = new List<WorldObject>();
 
-            for (int i = 0; i < f.worldObjectCount; i++) {
-                f.worldObjects[i] = ReadNextWorldObject(worldObjectSrc);
+            for (int i = 0; i < objects.count; i++) {
+                objects.objects.Add(ReadNextWorldObject(worldObjectSrc));
             }
 
-            int count = ReadNextInt32(worldObjectSrc);
-            
-            for (int i = 0; i < f.worldObjectCount; i++) {
-                long startProperties = worldObjectSrc.Position;
-                f.worldObjects[i].propertiesLength = ReadNextInt32(worldObjectSrc);
-                Int32 l = f.worldObjects[i].propertiesLength;
+            return objects;
+        }
 
+        public SaveFileProperties ReadNextSaveFileProperties(
+            Stream src,
+            bool skipPreviousBlocks = true
+        ) {
+            SaveFileProperties properties = new SaveFileProperties();
+            properties.objectsCount = ReadNextInt32(src);
+            
+            properties.properties = new List<WorldObjectProperties>();
+            for (int i = 0; i < properties.objectsCount; i++) {
                 /* debug
                 if (i == 7908) {
                     byte[] datablock = new byte[f.worldObjects[i].propertiesLength];
@@ -100,12 +159,20 @@ namespace dotdotdot.Services
                 }
                 //*/
 
-                try {                    
-                    f.worldObjects[i].properties = ReadNextWorldObjectProperties(worldObjectSrc, f.worldObjects[i]);
-                } catch (Exception) {
-                    throw;
-                }
+                properties.properties.Add(ReadNextWorldObjectProperties(src));
             }
+
+            return properties;
+        }
+
+        public SaveFile ReadNextSaveFile(Stream src)
+        {
+            SaveFile f = new SaveFile();
+
+            f.header = ReadNextSaveFileHeader(src);
+            MemoryStream worldObjectSrc = new MemoryStream();
+            f.objects = ReadNextSaveFileObjects(src, worldObjectSrc, false);
+            f.properties = ReadNextSaveFileProperties(worldObjectSrc, false);
 
             return f;
         }
@@ -133,12 +200,14 @@ namespace dotdotdot.Services
 
             switch (obj.type) {
                 case 0:
-                    SaveComponent component = new SaveComponent();
+                    WorldObjectData component = new WorldObjectData();
+                    component.type = "Component";
                     component.parentEntityName = ReadNextString(src);
                     obj.value = component;
                     break;
                 case 1:
-                    SaveEntity entity = new SaveEntity();
+                    WorldObjectData entity = new WorldObjectData();
+                    entity.type = "Entity";
                     entity.needTransform = ReadNextInt32(src) == 1;
                     entity.rotation = (
                         ReadNextFloat32(src),
@@ -166,36 +235,41 @@ namespace dotdotdot.Services
             return obj;
         }
 
-        public List<WorldObjectProperty> ReadNextWorldObjectProperties(Stream src, WorldObject obj)
+        public WorldObjectProperties ReadNextWorldObjectProperties(Stream src)
         {
-            List<WorldObjectProperty> properties = new List<WorldObjectProperty>();
+            WorldObjectProperties properties = new WorldObjectProperties();
+            properties.properties = new List<WorldObjectProperty>();
 
-            long propertiesStartPosition = src.Position;
+            Int64 start = src.Position;
+            
+            properties.size = ReadNextInt32(src);
 
-            if (obj.type == 1) {
-                ((SaveEntity) obj.value).parentId = ReadNextWorldObjectRef(src);
-                ((SaveEntity) obj.value).childrenCount = ReadNextInt32(src);
+            try {
+                properties.parentId = ReadNextWorldObjectRef(src);
+                properties.childrenCount = ReadNextInt32(src);
 
-                for (int i = 0; i < ((SaveEntity) obj.value).childrenCount; i++) {
+                for (int i = 0; i < properties.childrenCount; i++) {
                     WorldObjectRef child = ReadNextWorldObjectRef(src);
                     if (child != null) {
-                        if (((SaveEntity) obj.value).children == null) {
-                            ((SaveEntity) obj.value).children = new List<WorldObjectRef>();
+                        if (properties.children == null) {
+                            properties.children = new List<WorldObjectRef>();
                         }
 
-                        ((SaveEntity) obj.value).children.Add(child);
+                        properties.children.Add(child);
                     }
                 }
+            } catch (Exception) {
+                src.Position = start;
             }
 
-            while (src.Position < propertiesStartPosition + obj.propertiesLength) {
+            while (src.Position < start + properties.size) {
                 WorldObjectProperty prop = ReadNextWorldObjectProperty(src);
                 if (prop == null) {
                     break;
                 }
 
-                properties.Add(prop);
-                long notReaded = propertiesStartPosition + obj.propertiesLength - src.Position;
+                properties.properties.Add(prop);
+                long notReaded = start + properties.size - src.Position;
 
                 /*
                 if (notReaded < 20) {
@@ -206,7 +280,7 @@ namespace dotdotdot.Services
                 */
             }
 
-            long missingBytes = propertiesStartPosition + obj.propertiesLength - src.Position;
+            long missingBytes = start + properties.size - src.Position;
             if (missingBytes > 0) {
                 src.Position += missingBytes; // skip unknown 
             }

@@ -42,6 +42,4 @@ C:\Users\Count\Documents\projects\dotdotdot\bin\Debug\net5.0\ICSharpCode.SharpZi
 C:\Users\Count\Documents\projects\dotdotdot\bin\Debug\net5.0\frontend\package-lock.json
 C:\Users\Count\Documents\projects\dotdotdot\bin\Debug\net5.0\frontend\package.json
 C:\Users\Count\Documents\projects\dotdotdot\bin\Debug\net5.0\package.json
-C:\Users\Count\Documents\projects\dotdotdot\obj\Debug\net5.0\Razor\Views\SaveFile\List.cshtml.g.cs
-C:\Users\Count\Documents\projects\dotdotdot\obj\Debug\net5.0\Razor\Views\SaveFile\Read.cshtml.g.cs
 C:\Users\Count\Documents\projects\dotdotdot\bin\Debug\net5.0\package-lock.json

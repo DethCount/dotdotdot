@@ -1,17 +1,17 @@
 <template>
   <div class="home">
-    <SaveFiles />
+    <SaveFileList />
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import SaveFiles from '@/components/SaveFiles/SaveFiles.vue'
+import SaveFileList from '@/components/SaveFile/List/List.vue'
 
 export default {
   name: 'Home',
   components: {
-    SaveFiles
+    SaveFileList
   }
 }
 </script>

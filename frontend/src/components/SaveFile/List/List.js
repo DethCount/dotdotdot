@@ -1,5 +1,5 @@
 export default {
-  name: 'SaveFiles',
+  name: 'SaveFileList',
   data () {
     return {
       items: null,
@@ -7,12 +7,12 @@ export default {
     }
   },
   created () {
-    this.$store.dispatch('loadSaveFiles')
+    this.$store.dispatch('loadSaveFileList')
     this.$store.watch(
-      (state, getters) => state.saveFilesLoaded,
+      (state, getters) => state.saveFileListLoaded,
       (newValue, oldValue) => {
         if (newValue === true) {
-          this.items = this.$store.state.saveFiles.files
+          this.items = this.$store.state.saveFileList.files
           this.loaded = true
         }
       }

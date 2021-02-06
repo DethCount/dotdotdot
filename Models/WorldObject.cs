@@ -5,11 +5,10 @@ namespace dotdotdot.Models
 {
     public class WorldObject
     {
+        public WorldObjectRef id;
         public Int32 type;
         public string typePath;
-        public WorldObjectRef id;
-        public WorldObjectData value;
         public Int32 propertiesLength;
-        public List<WorldObjectProperty> properties;
+        public WorldObjectData value;
     }
 }

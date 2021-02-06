@@ -78,5 +78,47 @@ namespace dotdotdot.Controllers
         {
             return Json(Read(filename));
         }
+
+        public ViewModels.Header Header(string filename)
+        {
+            ViewModels.Header header = new ViewModels.Header();
+            header.basepath = _saveFileReader.GetBasePath();
+            header.filename = filename;
+
+            if (filename != null && filename.Trim().Length > 0) {
+                header.header = _saveFileReader.ReadHeader(header.basepath + filename);
+            }
+
+            return header;
+        }
+
+        [Route("api/save-file/{filename}/header")]
+        [Produces("application/json")]
+        public JsonResult HeaderJson(string filename)
+        {
+            return Json(Header(filename));
+        }
+
+        public ViewModels.Objects Objects(string filename)
+        {
+            ViewModels.Objects objects = new ViewModels.Objects();
+            objects.basepath = _saveFileReader.GetBasePath();
+            objects.filename = filename;
+
+            if (filename != null && filename.Trim().Length > 0) {
+                objects._objects = _saveFileReader.ReadObjects(
+                    objects.basepath + filename
+                );
+            }
+
+            return objects;
+        }
+
+        [Route("api/save-file/{filename}/objects")]
+        [Produces("application/json")]
+        public JsonResult ObjectsJson(string filename)
+        {
+            return Json(Objects(filename));
+        }
     }
 }

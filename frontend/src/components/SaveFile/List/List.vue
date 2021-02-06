@@ -8,7 +8,7 @@
             </thead>
             <tbody>
                 <tr v-bind:key="item.filename" v-for="item in items">
-                    <td><router-link to="{name: 'file', params: {filename: item.filename }">{{ item.filename }}</router-link></td>
+                    <td><router-link v-bind:to="{name: 'SaveFileRead', params: { filename: item.filename }}">{{ item.filename }}</router-link></td>
                     <td>{{ item.lastModified }}</td>
                 </tr>
             </tbody>
@@ -16,7 +16,7 @@
     </div>
 </template>
 
-<script src="@/components/SaveFiles/SaveFiles.js"></script>
+<script src="@/components/SaveFile/List/List.js"></script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped lang="scss" src="@/components/SaveFiles/SaveFiles.scss"></style>
+<style scoped lang="scss" src="@/components/SaveFile/List/List.scss"></style>
