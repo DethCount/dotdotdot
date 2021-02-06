@@ -120,5 +120,27 @@ namespace dotdotdot.Controllers
         {
             return Json(Objects(filename));
         }
+        
+        public ViewModels.Properties Properties(string filename)
+        {
+            ViewModels.Properties properties = new ViewModels.Properties();
+            properties.basepath = _saveFileReader.GetBasePath();
+            properties.filename = filename;
+
+            if (filename != null && filename.Trim().Length > 0) {
+                properties._properties = _saveFileReader.ReadProperties(
+                    properties.basepath + filename
+                );
+            }
+
+            return properties;
+        }
+
+        [Route("api/save-file/{filename}/properties")]
+        [Produces("application/json")]
+        public JsonResult PropertiesJson(string filename)
+        {
+            return Json(Properties(filename));
+        }
     }
 }

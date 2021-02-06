@@ -24,9 +24,9 @@
                         <td>{{ obj.typePath }}</td>
                         <td>{{ obj.value.parentEntityName }}</td>
                         <td>{{ obj.value.needTransform }}</td>
-                        <td>{{ '(' + obj.value.rotation.item1 + ',' + obj.value.rotation.item2 + ',' + obj.value.rotation.item3 + ')' }}</td>
-                        <td>{{ '(' + obj.value.position.item1 + ',' + obj.value.position.item2 + ',' + obj.value.position.item3 + ')' }}</td>
-                        <td>{{ '(' + obj.value.scale.item1 + ',' + obj.value.scale.item2 + ',' + obj.value.scale.item3 + ')' }}</td>
+                        <td>{{ obj.value.rotation }}</td>
+                        <td>{{ obj.value.position }}</td>
+                        <td>{{ obj.value.scale }}</td>
                         <td>{{ obj.value.wasPlacedInLevel }}</td>
                         <td></td>
                     </tr>

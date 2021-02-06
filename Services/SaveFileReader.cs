@@ -57,8 +57,21 @@ namespace dotdotdot.Services
         public SaveFileObjects ReadObjects(string filepath)
         {
             MemoryStream worldObjectsSrc = new MemoryStream();
+            List<Int32> objectTypes;
 
             return ReadNextSaveFileObjects(
+                GetStreamFromFilepath(filepath),
+                worldObjectsSrc,
+                out objectTypes,
+                true
+            );
+        }
+
+        public SaveFileProperties ReadProperties(string filepath)
+        {
+            MemoryStream worldObjectsSrc = new MemoryStream();
+
+            return ReadNextSaveFileProperties(
                 GetStreamFromFilepath(filepath),
                 worldObjectsSrc,
                 true
@@ -84,20 +97,35 @@ namespace dotdotdot.Services
 
         public void SkipHeader(Stream src)
         {
-            src.Position += 12;
-            src.Position = Math.Abs(ReadNextInt32(src)) + src.Position;
-            src.Position = Math.Abs(ReadNextInt32(src)) + src.Position;
-            src.Position = Math.Abs(ReadNextInt32(src)) + src.Position;
-            src.Position += 13;
+            SkipNextInt32(src);
+            SkipNextInt32(src);
+            SkipNextInt32(src);
+            SkipNextString(src);
+            SkipNextString(src);
+            SkipNextString(src);
+            SkipNextInt32(src);
+            SkipNextInt64(src);
+            SkipNextByte(src);
         }
-        public void SkipObjects(Stream src, Stream worldObjectSrc)
-        {
+
+        public void SkipObjects(
+            Stream src, 
+            Stream worldObjectSrc, 
+            out List<Int32> objectTypes
+        ) {
+            objectTypes = new List<Int32>();
+
             UnzipSaveFileObjects(src, worldObjectSrc);
             src.Dispose();
             worldObjectSrc.Position = 0;
 
-            Int32 objectsLength = ReadNextInt32(worldObjectSrc);
-            src.Position += objectsLength;
+            SkipNextInt32(worldObjectSrc);
+            Int32 count = ReadNextInt32(worldObjectSrc);
+            for (int i = 0; i < count; i++) {
+                Int32 objectType;
+                SkipNextWorldObject(worldObjectSrc, out objectType);
+                objectTypes.Add(objectType);
+            }
         }
 
         public void UnzipSaveFileObjects(Stream src, Stream dest)
@@ -110,14 +138,15 @@ namespace dotdotdot.Services
                 src.Position = start + header.currentChunkCompressedLength;
             }
         }
-
         
         public SaveFileObjects ReadNextSaveFileObjects(
             Stream src,
             Stream worldObjectSrc,
+            out List<Int32> objectTypes,
             bool skipPreviousBlocks = true
         ) {
             SaveFileObjects objects = new SaveFileObjects();
+            objectTypes = new List<Int32>();
 
             if (skipPreviousBlocks) {
                 SkipHeader(src);
@@ -133,7 +162,9 @@ namespace dotdotdot.Services
             objects.objects = new List<WorldObject>();
 
             for (int i = 0; i < objects.count; i++) {
-                objects.objects.Add(ReadNextWorldObject(worldObjectSrc));
+                WorldObject obj = ReadNextWorldObject(worldObjectSrc);
+                objectTypes.Add(obj.type);
+                objects.objects.Add(obj);
             }
 
             return objects;
@@ -141,25 +172,31 @@ namespace dotdotdot.Services
 
         public SaveFileProperties ReadNextSaveFileProperties(
             Stream src,
+            Stream worldObjectSrc,
             bool skipPreviousBlocks = true
         ) {
             SaveFileProperties properties = new SaveFileProperties();
-            properties.objectsCount = ReadNextInt32(src);
-            
-            properties.properties = new List<WorldObjectProperties>();
-            for (int i = 0; i < properties.objectsCount; i++) {
-                /* debug
-                if (i == 7908) {
-                    byte[] datablock = new byte[f.worldObjects[i].propertiesLength];
-                    long pos = worldObjectSrc.Position;
-                    //worldObjectSrc.Position = pos + l - 1024;
-                    string block = ReadNextString(worldObjectSrc, l);
-                    worldObjectSrc.Position = pos;
-                    string str = f.worldObjects[i].id.instanceName;
-                }
-                //*/
 
-                properties.properties.Add(ReadNextWorldObjectProperties(src));
+            List<Int32> objectTypes = new List<Int32>();
+            if (skipPreviousBlocks) {
+                SkipHeader(src);
+                SkipObjects(src, worldObjectSrc, out objectTypes);
+            }
+
+            properties.count = ReadNextInt32(worldObjectSrc);
+            properties.properties = new List<WorldObjectProperties>();
+
+            for (int i = 0; i < properties.count; i++) {
+                try {
+                    if (i > 22823) {
+                        long pos = worldObjectSrc.Position;
+                        string debug = ReadNextString(worldObjectSrc);
+                        worldObjectSrc.Position = pos;
+                    }
+                    properties.properties.Add(ReadNextWorldObjectProperties(worldObjectSrc, objectTypes[i]));
+                } catch (Exception e) {
+                    throw e;
+                }
             }
 
             return properties;
@@ -171,8 +208,9 @@ namespace dotdotdot.Services
 
             f.header = ReadNextSaveFileHeader(src);
             MemoryStream worldObjectSrc = new MemoryStream();
-            f.objects = ReadNextSaveFileObjects(src, worldObjectSrc, false);
-            f.properties = ReadNextSaveFileProperties(worldObjectSrc, false);
+            List<Int32> objectTypes;
+            f.objects = ReadNextSaveFileObjects(src, worldObjectSrc, out objectTypes, false);
+            f.properties = ReadNextSaveFileProperties(src, worldObjectSrc, false);
 
             return f;
         }
@@ -191,60 +229,76 @@ namespace dotdotdot.Services
             return header;
         }
 
+        public void SkipNextWorldObject(Stream src, out Int32 objectType)
+        {
+            objectType = ReadNextInt32(src);
+            SkipNextString(src);
+            SkipNextWorldObjectRef(src);
+            SkipNextWorldObjectData(src, objectType);
+        }
+
         public WorldObject ReadNextWorldObject(Stream src)
         {
             WorldObject obj = new WorldObject();
             obj.type = ReadNextInt32(src);
             obj.typePath = ReadNextString(src);
             obj.id = ReadNextWorldObjectRef(src);
+            obj.value = ReadNextWorldObjectData(src, obj.type);
 
-            switch (obj.type) {
+            return obj;
+        }
+
+        public void SkipNextWorldObjectData(Stream src, Int32 objectType)
+        {
+            switch (objectType) {
                 case 0:
-                    WorldObjectData component = new WorldObjectData();
-                    component.type = "Component";
-                    component.parentEntityName = ReadNextString(src);
-                    obj.value = component;
+                    SkipNextString(src);
                     break;
                 case 1:
-                    WorldObjectData entity = new WorldObjectData();
-                    entity.type = "Entity";
-                    entity.needTransform = ReadNextInt32(src) == 1;
-                    entity.rotation = (
-                        ReadNextFloat32(src),
-                        ReadNextFloat32(src),
-                        ReadNextFloat32(src),
-                        ReadNextFloat32(src)
-                    );
-                    entity.position = (
-                        ReadNextFloat32(src),
-                        ReadNextFloat32(src),
-                        ReadNextFloat32(src)
-                    );
-                    entity.scale = (
-                        ReadNextFloat32(src),
-                        ReadNextFloat32(src),
-                        ReadNextFloat32(src)
-                    );
-                    entity.wasPlacedInLevel = ReadNextInt32(src) == 1;
-                    obj.value = entity;
+                    SkipNextInt32(src);
+                    SkipNextQuat(src);
+                    SkipNextVector(src);
+                    SkipNextVector(src);
+                    SkipNextInt32(src);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        public WorldObjectData ReadNextWorldObjectData(Stream src, Int32 objectType)
+        {
+            WorldObjectData objData = new WorldObjectData();
+
+            switch (objectType) {
+                case 0:
+                    objData.type = "Component";
+                    objData.parentEntityName = ReadNextString(src);
+                    break;
+                case 1:
+                    objData.type = "Entity";
+                    objData.needTransform = ReadNextInt32(src) == 1;
+                    objData.rotation = ReadNextQuat(src);
+                    objData.position = ReadNextVector(src);
+                    objData.scale = ReadNextVector(src);
+                    objData.wasPlacedInLevel = ReadNextInt32(src) == 1;
                     break;
                 default:
                     break;
             }
 
-            return obj;
+            return objData;
         }
 
-        public WorldObjectProperties ReadNextWorldObjectProperties(Stream src)
+        public WorldObjectProperties ReadNextWorldObjectProperties(Stream src, Int32 objectType)
         {
             WorldObjectProperties properties = new WorldObjectProperties();
             properties.properties = new List<WorldObjectProperty>();
-
-            Int64 start = src.Position;
-            
             properties.size = ReadNextInt32(src);
+            Int64 start = src.Position;
 
-            try {
+            // entity
+            if (objectType == 1) {
                 properties.parentId = ReadNextWorldObjectRef(src);
                 properties.childrenCount = ReadNextInt32(src);
 
@@ -258,31 +312,21 @@ namespace dotdotdot.Services
                         properties.children.Add(child);
                     }
                 }
-            } catch (Exception) {
-                src.Position = start;
             }
 
-            while (src.Position < start + properties.size) {
+            long notReaded = start + properties.size - src.Position;            
+            while (notReaded > 0) {
                 WorldObjectProperty prop = ReadNextWorldObjectProperty(src);
+                notReaded = start + properties.size - src.Position;
                 if (prop == null) {
                     break;
                 }
 
                 properties.properties.Add(prop);
-                long notReaded = start + properties.size - src.Position;
-
-                /*
-                if (notReaded < 20) {
-                    long pos = src.Position;
-                    string str = ReadNextString(src, (int) notReaded);
-                    src.Position = pos;
-                }
-                */
             }
 
-            long missingBytes = start + properties.size - src.Position;
-            if (missingBytes > 0) {
-                src.Position += missingBytes; // skip unknown 
+            if (notReaded > 0) {
+                src.Position += notReaded; // skip unknown
             }
 
             return properties;
@@ -446,6 +490,12 @@ namespace dotdotdot.Services
             return structProp;
         }
 
+        public void SkipNextWorldObjectRef(Stream src)
+        {
+            SkipNextString(src);
+            SkipNextString(src);
+        }
+
         public WorldObjectRef ReadNextWorldObjectRef(Stream src)
         {
             WorldObjectRef objRef = new WorldObjectRef();
@@ -487,6 +537,11 @@ namespace dotdotdot.Services
             return objRef;
         }
 
+        public void SkipNextByte(Stream src)
+        {
+            src.Position += 1;
+        }
+
         public Byte ReadNextByte(Stream src)
         {
             byte[] bytes = ReadNext(src, 1);
@@ -494,14 +549,29 @@ namespace dotdotdot.Services
             return (Byte) bytes[0];
         }
 
+        public void SkipNextInt32(Stream src)
+        {
+            src.Position += 4;
+        }
+
         public Int32 ReadNextInt32(Stream src)
         {
             return BitConverter.ToInt32(ReadNext(src, 4));
         }
 
+        public void SkipNextInt64(Stream src)
+        {
+            src.Position += 8;
+        }
+
         public Int64 ReadNextInt64(Stream src)
         {
             return BitConverter.ToInt64(ReadNext(src, 8));
+        }
+
+        public void SkipNextFloat32(Stream src)
+        {
+            src.Position += 4;
         }
 
         public Single ReadNextFloat32(Stream src)
@@ -527,6 +597,14 @@ namespace dotdotdot.Services
 
             return r;
         }
+
+        public void SkipNextVector(Stream src)
+        {
+            SkipNextFloat32(src);
+            SkipNextFloat32(src);
+            SkipNextFloat32(src);
+        }
+
         public Vector ReadNextVector(Stream src)
         {
             Vector r = new Vector();
@@ -566,6 +644,14 @@ namespace dotdotdot.Services
             b.isValid = ReadNextByte(src) > 0;
 
             return b;
+        }
+
+        public void SkipNextQuat(Stream src)
+        {
+            SkipNextFloat32(src);
+            SkipNextFloat32(src);
+            SkipNextFloat32(src);
+            SkipNextFloat32(src);
         }
 
         public Quat ReadNextQuat(Stream src)
@@ -766,6 +852,11 @@ namespace dotdotdot.Services
             }
 
             return prop;
+        }
+
+        public void SkipNextString(Stream src)
+        {
+            src.Position = Math.Abs(ReadNextInt32(src)) + src.Position;
         }
 
         public string ReadNextString(Stream src, int? length = null)

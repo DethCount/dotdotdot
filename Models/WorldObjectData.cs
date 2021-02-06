@@ -8,9 +8,9 @@ namespace dotdotdot.Models
         public string type;
         public string parentEntityName;
         public bool needTransform;
-        public ValueTuple<Single, Single, Single, Single> rotation;
-        public ValueTuple<Single, Single, Single> position;
-        public ValueTuple<Single, Single, Single> scale;
+        public Quat rotation;
+        public Vector position;
+        public Vector scale;
         public bool wasPlacedInLevel;
     }
 }
