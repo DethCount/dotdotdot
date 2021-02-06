@@ -15628,13 +15628,18 @@
       "FileKind": "mvc"
     },
     {
-      "FilePath": "c:\\Users\\Count\\Documents\\projects\\dotdotdot\\Views\\_ViewImports.cshtml",
-      "TargetPath": "Views\\_ViewImports.cshtml",
+      "FilePath": "c:\\Users\\Count\\Documents\\projects\\dotdotdot\\Views\\SaveFile\\Read.cshtml",
+      "TargetPath": "Views\\SaveFile\\Read.cshtml",
       "FileKind": "mvc"
     },
     {
-      "FilePath": "c:\\Users\\Count\\Documents\\projects\\dotdotdot\\Views\\Home\\File.cshtml",
-      "TargetPath": "Views\\Home\\File.cshtml",
+      "FilePath": "c:\\Users\\Count\\Documents\\projects\\dotdotdot\\Views\\SaveFile\\List.cshtml",
+      "TargetPath": "Views\\SaveFile\\List.cshtml",
+      "FileKind": "mvc"
+    },
+    {
+      "FilePath": "c:\\Users\\Count\\Documents\\projects\\dotdotdot\\Views\\_ViewImports.cshtml",
+      "TargetPath": "Views\\_ViewImports.cshtml",
       "FileKind": "mvc"
     },
     {

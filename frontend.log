@@ -1,0 +1,20 @@
+
+> dotdotdot@1.0.0 serve C:\Users\Count\Documents\projects\dotdotdot
+> cd frontend && npm run serve && cd ..
+
+
+> frontend@0.1.0 serve C:\Users\Count\Documents\projects\dotdotdot\frontend
+> vue-cli-service serve
+
+ INFO  Starting development server...
+ DONE  Compiled successfully in 2143ms10:26:05 AM
+
+
+  App running at:
+  - Local:   http://localhost:8080/ 
+  - Network: http://192.168.1.11:8080/
+
+  Note that the development build is not optimized.
+  To create a production build, run npm run build.
+
+Terminer le programme de commandes (O/N)ÿ? Terminer le programme de commandes (O/N)ÿ? 

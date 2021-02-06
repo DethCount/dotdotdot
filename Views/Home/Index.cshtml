@@ -4,21 +4,5 @@
 }
 
 <div class="row">
-    <table class="table table-striped">
-        <thead>
-            <th>Safe file</th>
-            <th>Last Modified</th>
-        </thead>
-        <tbody>
-        @foreach (ValueTuple<string,DateTime> file in (List<ValueTuple<string,DateTime>>) ViewData["files"])
-        {
-            string filename = file.Item1.Replace((string) ViewData["basepath"], "");
-
-            <tr>
-                <td><a href="@Url.RouteUrl("File", new { filename = filename })">@Html.Encode(filename)</a></td>
-                <td>@Html.Encode(file.Item2)</td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    <h1>Welcome !</h1>
 </div>

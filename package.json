@@ -1,0 +1,22 @@
+{
+  "name": "dotdotdot",
+  "version": "1.0.0",
+  "description": "Serveur asp .net core permettant de visualiser les fichiers de sauvegarde du jeu Satisfactory",
+  "main": "index.js",
+  "scripts": {
+    "build": "cd frontend && npm run build && cd ..",
+    "buildwatch": "cd frontend && npm run buildwatch && cd ..",
+    "serve": "cd frontend && npm run serve && cd .."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DethCount/dotdotdot.git"
+  },
+  "author": "Dethcount",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DethCount/dotdotdot/issues"
+  },
+  "homepage": "https://github.com/DethCount/dotdotdot#readme",
+  "dependencies": {}
+}
