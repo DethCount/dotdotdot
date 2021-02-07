@@ -19,4 +19,4 @@
 <script src="@/components/SaveFile/List/List.js"></script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped lang="scss" src="@/components/SaveFile/List/List.scss"></style>
+<style scoped lang="sass" src="@/components/SaveFile/List/List.sass"></style>

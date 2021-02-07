@@ -1,6 +1,5 @@
 <template>
     <div class="row">
-        <h2>Header</h2>
         <div class="col-12" v-if="loaded">
             <table class="table table-striped">
                 <thead>
@@ -27,4 +26,4 @@
 
 <script src="@/components/SaveFile/Header/Header.js"></script>
 
-<style scoped lang="scss" src="@/components/SaveFile/Header/Header.scss"></style>
+<style scoped lang="sass" src="@/components/SaveFile/Header/Header.sass"></style>

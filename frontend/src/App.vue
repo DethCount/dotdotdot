@@ -1,7 +1,6 @@
 <template>
   <div id="nav">
-    <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link>
+    <router-link to="/">Satisfactory Save Files</router-link>
   </div>
   <div class="container">
     <router-view />
@@ -30,3 +29,5 @@
   }
 }
 </style>
+
+<style lang="sass" scoped src="./App.sass"></style>
