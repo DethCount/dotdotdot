@@ -34,7 +34,9 @@
                     </tbody>
                 </table>
 
-                <Tree v-bind:nodes="node[1].properties" v-if="node[1].properties !== undefined"></Tree>
+                <div class="properties">
+                    <Tree v-bind:nodes="node[1].properties" v-if="node[1].properties !== undefined"></Tree>
+                </div>
             </div>
         </div>
     </div>
