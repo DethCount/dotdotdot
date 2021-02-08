@@ -1,6 +1,5 @@
 <template>
     <div class="row">
-        <h1>Save Files</h1>
         <table v-if="loaded" class="table table-striped">
             <thead>
                 <th>Path</th>
