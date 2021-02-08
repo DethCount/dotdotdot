@@ -15,7 +15,10 @@
             v-if="node[1] && showBody"
             v-show="showBody"
             >
-            <div class="card-body" v-if="typeof node[1].entries == 'function'">
+            <div class="card-body" v-if="typeof node[1] == 'string'">
+                <span>{{ node[1] }}</span>
+            </div>
+            <div class="card-body" v-else-if="typeof node[1].entries == 'function'">
                 <Tree v-bind:nodes="node[1].entries()"></Tree>
             </div>
             <div class="card-body leaf" v-else>
@@ -26,7 +29,7 @@
                     </thead>
                     <tbody>
                         <template v-for="(value, key) in node[1]">
-                            <tr v-bind:key="key + 'tr'" v-if="key != 'properties'">
+                            <tr v-bind:key="key + 'tr'" v-if="showTableRow(key, value)">
                                 <td>{{ key }}</td>
                                 <td>{{ value }}</td>
                             </tr>
@@ -34,8 +37,12 @@
                     </tbody>
                 </table>
 
-                <div class="properties">
-                    <Tree v-bind:nodes="node[1].properties" v-if="node[1].properties !== undefined"></Tree>
+                <div class="values" v-if="showValues">
+                    <Tree v-bind:nodes="values"></Tree>
+                </div>
+
+                <div class="properties" v-if="hasProperties()">
+                    <Tree v-bind:nodes="getProperties()"></Tree>
                 </div>
             </div>
         </div>
