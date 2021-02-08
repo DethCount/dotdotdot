@@ -12,6 +12,6 @@ export default {
     }
   },
   created () {
-    console.log('created tree node', this.node)
+    // console.log('created tree node', this.node)
   }
 }

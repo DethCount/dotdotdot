@@ -1,5 +1,6 @@
 import { createStore } from 'vuex'
 import axios from 'axios'
+import * as d3 from 'd3'
 
 export default createStore({
   state: {
@@ -9,6 +10,8 @@ export default createStore({
     saveFileHeadersLoaded: {},
     saveFileObjects: {},
     saveFileObjectsLoaded: {},
+    saveFileObjectsTree: {},
+    saveFileObjectsTreeLoaded: {},
     saveFileProperties: {},
     saveFilePropertiesLoaded: {}
   },
@@ -25,25 +28,30 @@ export default createStore({
       state.saveFileHeadersLoaded[filename] = false
     },
     set_save_file_header (state, { filename, saveFileHeader }) {
-      console.log('set_save_file_header', arguments)
       state.saveFileHeaders[filename] = saveFileHeader
       state.saveFileHeadersLoaded[filename] = true
     },
     reset_save_file_objects (state, filename) {
       delete state.saveFileObjects[filename]
       state.saveFileObjectsLoaded[filename] = false
+
+      delete state.saveFileObjectsTree[filename]
+      state.saveFileObjectsTreeLoaded[filename] = false
     },
     set_save_file_objects (state, { filename, saveFileObjects }) {
-      console.log('set_save_file_objects', arguments)
       state.saveFileObjects[filename] = saveFileObjects
       state.saveFileObjectsLoaded[filename] = true
+    },
+    set_save_file_objects_tree (state, { filename, saveFileObjectsTree }) {
+      console.log('set_save_file_objects_tree', arguments)
+      state.saveFileObjectsTree[filename] = saveFileObjectsTree
+      state.saveFileObjectsTreeLoaded[filename] = true
     },
     reset_save_file_properties (state, filename) {
       delete state.saveFileProperties[filename]
       state.saveFilePropertiesLoaded[filename] = false
     },
     set_save_file_properties (state, { filename, saveFileProperties }) {
-      console.log('set_save_file_properties', arguments)
       state.saveFileProperties[filename] = saveFileProperties
       state.saveFilePropertiesLoaded[filename] = true
     }
@@ -71,7 +79,6 @@ export default createStore({
         })
     },
     loadSaveFileHeader ({ commit }, { filename }) {
-      console.log(arguments)
       commit('reset_save_file_header', filename)
 
       axios
@@ -94,8 +101,7 @@ export default createStore({
           console.error(error)
         })
     },
-    loadSaveFileObjects ({ commit }, { filename }) {
-      console.log(arguments)
+    loadSaveFileObjects ({ commit, dispatch }, { filename }) {
       commit('reset_save_file_objects', filename)
 
       axios
@@ -112,14 +118,14 @@ export default createStore({
           }
         )
         .then(response => {
-          commit('set_save_file_objects', { filename: filename, saveFileObjects: response.data })
+          commit('set_save_file_objects', { filename, saveFileObjects: response.data })
+          dispatch('buildSaveFileObjectsTree', { filename })
         })
         .catch(error => {
           console.error(error)
         })
     },
-    loadSaveFileProperties ({ commit }, { filename }) {
-      console.log(arguments)
+    loadSaveFileProperties ({ commit, dispatch }, { filename }) {
       commit('reset_save_file_properties', filename)
 
       axios
@@ -137,10 +143,69 @@ export default createStore({
         )
         .then(response => {
           commit('set_save_file_properties', { filename: filename, saveFileProperties: response.data })
+          dispatch('buildSaveFileObjectsTree', { filename })
         })
         .catch(error => {
           console.error(error)
         })
+    },
+    buildSaveFileObjectsTree ({ state, commit }, { filename }) {
+      if (!Object.prototype.hasOwnProperty
+          .call(state.saveFileObjects, filename) ||
+        undefined === state.saveFileObjects[filename]
+      ) {
+        return
+      }
+
+      const objects = state.saveFileObjects[filename].objects.reduce(
+        (t, v, i) => {
+          t.push({ ...v, index: i })
+          return t
+        },
+        []
+      )
+
+      const objectsByPathAndType = d3.rollup(
+        objects,
+        (v) => v.reduce((t, d) => {
+          let data = {
+            instanceName: d.id.instanceName,
+            ...d.value
+          }
+
+          if (Object.prototype.hasOwnProperty
+              .call(state.saveFileProperties, filename) &&
+            undefined !== state.saveFileProperties[filename] &&
+            Object.prototype.hasOwnProperty
+              .call(state.saveFileProperties[filename].properties, d.index) &&
+            undefined !== state.saveFileProperties[filename].properties[d.index]
+          ) {
+            const propsHierarchy = d3.index(
+              state.saveFileProperties[filename].properties[d.index].properties,
+              d => d.name
+            )
+
+            data = {
+              ...data,
+              properties: propsHierarchy
+            }
+          }
+
+          return data
+        }),
+        d => d.id.rootObject,
+        d => d.value.type,
+        d => d.typePath.split('/')[1],
+        d => d.typePath.split('/')
+          .reduce((a, v, i) =>
+            i > 1
+              ? a + (a.length > 0 ? '/' : '') + v
+              : ''
+          )
+      )
+
+      commit('set_save_file_objects_tree', { filename, saveFileObjectsTree: objectsByPathAndType })
+      // */
     }
   },
   modules: {

@@ -25,12 +25,16 @@
                         <th>Value</th>
                     </thead>
                     <tbody>
-                        <tr v-bind:key="key" v-for="(value, key) in node[1]">
-                            <td>{{ key }}</td>
-                            <td>{{ value }}</td>
-                        </tr>
+                        <template v-for="(value, key) in node[1]">
+                            <tr v-bind:key="key + 'tr'" v-if="key != 'properties'">
+                                <td>{{ key }}</td>
+                                <td>{{ value }}</td>
+                            </tr>
+                        </template>
                     </tbody>
                 </table>
+
+                <Tree v-bind:nodes="node[1].properties" v-if="node[1].properties !== undefined"></Tree>
             </div>
         </div>
     </div>

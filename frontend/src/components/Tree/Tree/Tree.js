@@ -10,6 +10,6 @@ export default {
     return {}
   },
   created () {
-    console.log('created tree', this.nodes)
+    // console.log('created tree', this.nodes)
   }
 }
