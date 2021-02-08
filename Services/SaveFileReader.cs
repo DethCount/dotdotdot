@@ -35,7 +35,7 @@ namespace dotdotdot.Services
 
             return new FileStream(
                 filepath,
-                FileMode.Open, 
+                FileMode.Open,
                 FileAccess.Read
             );
         }
@@ -53,7 +53,7 @@ namespace dotdotdot.Services
                 GetStreamFromFilepath(filepath)
             );
         }
-        
+
         public SaveFileObjects ReadObjects(string filepath)
         {
             MemoryStream worldObjectsSrc = new MemoryStream();
@@ -74,6 +74,7 @@ namespace dotdotdot.Services
             return ReadNextSaveFileProperties(
                 GetStreamFromFilepath(filepath),
                 worldObjectsSrc,
+                null,
                 true
             );
         }
@@ -109,8 +110,8 @@ namespace dotdotdot.Services
         }
 
         public void SkipObjects(
-            Stream src, 
-            Stream worldObjectSrc, 
+            Stream src,
+            Stream worldObjectSrc,
             out List<Int32> objectTypes
         ) {
             objectTypes = new List<Int32>();
@@ -138,7 +139,7 @@ namespace dotdotdot.Services
                 src.Position = start + header.currentChunkCompressedLength;
             }
         }
-        
+
         public SaveFileObjects ReadNextSaveFileObjects(
             Stream src,
             Stream worldObjectSrc,
@@ -173,22 +174,27 @@ namespace dotdotdot.Services
         public SaveFileProperties ReadNextSaveFileProperties(
             Stream src,
             Stream worldObjectSrc,
+            List<Int32> objectTypes = null,
             bool skipPreviousBlocks = true
         ) {
             SaveFileProperties properties = new SaveFileProperties();
 
-            List<Int32> objectTypes = new List<Int32>();
             if (skipPreviousBlocks) {
                 SkipHeader(src);
+                objectTypes = new List<Int32>();
                 SkipObjects(src, worldObjectSrc, out objectTypes);
             }
 
             properties.count = ReadNextInt32(worldObjectSrc);
+            if (objectTypes.Count != properties.count) {
+                throw new Exception("Incoherence between object list and properties list");
+            }
+
             properties.properties = new List<WorldObjectProperties>();
 
             for (int i = 0; i < properties.count; i++) {
                 try {
-                    if (i > 22823) {
+                    if (i == 0) {
                         long pos = worldObjectSrc.Position;
                         string debug = ReadNextString(worldObjectSrc);
                         worldObjectSrc.Position = pos;
@@ -210,7 +216,7 @@ namespace dotdotdot.Services
             MemoryStream worldObjectSrc = new MemoryStream();
             List<Int32> objectTypes;
             f.objects = ReadNextSaveFileObjects(src, worldObjectSrc, out objectTypes, false);
-            f.properties = ReadNextSaveFileProperties(src, worldObjectSrc, false);
+            f.properties = ReadNextSaveFileProperties(src, worldObjectSrc, objectTypes, false);
 
             return f;
         }
@@ -314,7 +320,7 @@ namespace dotdotdot.Services
                 }
             }
 
-            long notReaded = start + properties.size - src.Position;            
+            long notReaded = start + properties.size - src.Position;
             while (notReaded > 0) {
                 WorldObjectProperty prop = ReadNextWorldObjectProperty(src);
                 notReaded = start + properties.size - src.Position;
@@ -350,7 +356,7 @@ namespace dotdotdot.Services
             } else {
                 prop.isMultiple = true;
                 prop.values = new List<object>();
-                
+
                 string subType = prop.type == "StructProperty" || prop.type == "ByteProperty" ? ReadNextString(src) : null;
 
                 for (long i = 0; i < count; i++) {
@@ -362,9 +368,9 @@ namespace dotdotdot.Services
         }
 
         public object ReadNextWorldObjectPropertyValue(
-            Stream src, 
-            string type, 
-            string subType = null, 
+            Stream src,
+            string type,
+            string subType = null,
             bool firstValue = true,
             bool inArray = false,
             bool inMap = false
@@ -374,7 +380,7 @@ namespace dotdotdot.Services
             string secondSubType = null;
 
             if (firstValue) {
-                if (subType == null 
+                if (subType == null
                     && (
                         type == "StructProperty"
                         || type == "ArrayProperty"
@@ -389,16 +395,16 @@ namespace dotdotdot.Services
                 if (type == "MapProperty") {
                     secondSubType = ReadNextString(src);
                 }
-                
+
                 if (!inMap && type == "StructProperty") {
                     Guid guid = ReadNextGuid(src); // skip guid
                 }
 
-                if (!inMap 
+                if (!inMap
                     && (
                         !inArray
                         || (
-                            type != "InterfaceProperty" 
+                            type != "InterfaceProperty"
                             && type != "ObjectProperty"
                             && type != "ByteProperty"
                             && type != "IntProperty"
@@ -460,7 +466,7 @@ namespace dotdotdot.Services
             return value;
         }
         public NamedWorldObjectProperty ReadNextNamedWorldObjectProperty(
-            Stream src, 
+            Stream src,
             string name = null
         ) {
             NamedWorldObjectProperty prop = new NamedWorldObjectProperty();
@@ -471,7 +477,7 @@ namespace dotdotdot.Services
         }
 
         public WorldObjectStructProperty ReadNextWorldObjectDynamicStructProperty(
-            Stream src, 
+            Stream src,
             string type = null
         ) {
             WorldObjectStructProperty structProp = new WorldObjectStructProperty();
@@ -501,7 +507,7 @@ namespace dotdotdot.Services
             WorldObjectRef objRef = new WorldObjectRef();
             objRef.rootObject = ReadNextString(src);
             objRef.instanceName = ReadNextString(src);
-            
+
             if (objRef.rootObject == string.Empty && objRef.instanceName == string.Empty) {
                 return null;
             }
@@ -515,7 +521,7 @@ namespace dotdotdot.Services
 
             objRef.rootObject = ReadNextString(src);
             objRef.instanceName = ReadNextString(src);
-            
+
             if (objRef.rootObject == string.Empty && objRef.instanceName == string.Empty) {
                 return null;
             }
@@ -529,7 +535,7 @@ namespace dotdotdot.Services
 
             objRef.rootObject = ReadNextString(src);
             objRef.instanceName = ReadNextString(src);
-            
+
             if (objRef.rootObject == string.Empty && objRef.instanceName == string.Empty) {
                 return null;
             }
@@ -584,7 +590,7 @@ namespace dotdotdot.Services
             Vector2D v = new Vector2D();
             v.x = ReadNextFloat32(src);
             v.y = ReadNextFloat32(src);
-            
+
             return v;
         }
 
@@ -679,7 +685,7 @@ namespace dotdotdot.Services
         public RailroadTrackPosition ReadNextRailroadTrackPosition(Stream src)
         {
             RailroadTrackPosition ratp = new RailroadTrackPosition();
-            
+
             ratp.objectRef = ReadNextWorldObjectRef(src);
             ratp.offset = ReadNextFloat32(src);
             ratp.forward = ReadNextFloat32(src);
@@ -695,7 +701,7 @@ namespace dotdotdot.Services
         public FluidBox ReadNextFluidBox(Stream src)
         {
             FluidBox fbox = new FluidBox();
-            
+
             fbox.value = ReadNextFloat32(src);
 
             return fbox;
@@ -792,8 +798,8 @@ namespace dotdotdot.Services
         }
 
         public Dictionary<object,object> ReadNextWorldObjectMapProperty(
-            Stream src, 
-            string keyType, 
+            Stream src,
+            string keyType,
             string valueType
         ) {
             Int32 unk1 = ReadNextInt32(src);
@@ -802,7 +808,7 @@ namespace dotdotdot.Services
             for (int i = 0; i < length; i++) {
                 object key = ReadNextWorldObjectPropertyValue(src, keyType, null, i==0, true, true);
                 object value = null;
-                
+
                 if (valueType == "StructProperty") {
                     value = ReadNextWorldObjectDynamicStructProperty(src);
                 } else {
@@ -820,7 +826,7 @@ namespace dotdotdot.Services
             WorldObjectTextProperty prop = new WorldObjectTextProperty();
             prop.flags = ReadNextInt32(src);
             prop.historyType = ReadNextByte(src);
-            
+
             switch (prop.historyType) {
                 case 0:
                     prop.ns = ReadNextString(src);
@@ -863,7 +869,7 @@ namespace dotdotdot.Services
         {
             Int32 len = length.HasValue ? length.Value : ReadNextInt32(src);
             // bool isUTF16 = len < 0;
-            
+
             int effectiveLength = Math.Abs(len) - 1;
 
             if (effectiveLength > 2048*1024) { // 2Gb
@@ -877,7 +883,7 @@ namespace dotdotdot.Services
                 );
                 src.Position++; // avoid \0 char
             }
-            
+
             return val;
         }
 
@@ -892,10 +898,10 @@ namespace dotdotdot.Services
         protected void unzip(Stream src, Stream dest)
         {
             InflaterInputStream inputStream = new InflaterInputStream(
-                src, 
+                src,
                 new Inflater(false)
             );
-            
+
             inputStream.CopyTo(dest);
         }
     }

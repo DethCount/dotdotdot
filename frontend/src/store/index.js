@@ -157,9 +157,13 @@ export default createStore({
         return
       }
 
+      // index as a field
       const objects = state.saveFileObjects[filename].objects.reduce(
         (t, v, i) => {
-          t.push({ ...v, index: i })
+          t.push({
+            ...v,
+            index: i
+          })
           return t
         },
         []
@@ -167,32 +171,34 @@ export default createStore({
 
       const objectsByPathAndType = d3.rollup(
         objects,
-        (v) => v.reduce((t, d) => {
-          let data = {
-            instanceName: d.id.instanceName,
-            ...d.value
-          }
-
-          if (Object.prototype.hasOwnProperty
-              .call(state.saveFileProperties, filename) &&
-            undefined !== state.saveFileProperties[filename] &&
-            Object.prototype.hasOwnProperty
-              .call(state.saveFileProperties[filename].properties, d.index) &&
-            undefined !== state.saveFileProperties[filename].properties[d.index]
-          ) {
-            const propsHierarchy = d3.index(
-              state.saveFileProperties[filename].properties[d.index].properties,
-              d => d.name
-            )
-
-            data = {
-              ...data,
-              properties: propsHierarchy
+        (v) => {
+          return v.reduce((t, d) => {
+            let data = {
+              instanceName: d.id.instanceName,
+              ...d.value
             }
-          }
 
-          return data
-        }),
+            if (Object.prototype.hasOwnProperty
+                .call(state.saveFileProperties, filename) &&
+              undefined !== state.saveFileProperties[filename] &&
+              Object.prototype.hasOwnProperty
+                .call(state.saveFileProperties[filename].properties, d.index) &&
+              undefined !== state.saveFileProperties[filename].properties[d.index]
+            ) {
+              const propsHierarchy = d3.index(
+                state.saveFileProperties[filename].properties[d.index].properties,
+                d => d.name + '[' + d.index + ']'
+              )
+
+              data = {
+                ...data,
+                properties: propsHierarchy
+              }
+            }
+
+            return data
+          }, [])
+        },
         d => d.id.rootObject,
         d => d.value.type,
         d => d.typePath.split('/')[1],
@@ -201,7 +207,8 @@ export default createStore({
             i > 1
               ? a + (a.length > 0 ? '/' : '') + v
               : ''
-          )
+          ),
+        d => d.id.instanceName
       )
 
       commit('set_save_file_objects_tree', { filename, saveFileObjectsTree: objectsByPathAndType })

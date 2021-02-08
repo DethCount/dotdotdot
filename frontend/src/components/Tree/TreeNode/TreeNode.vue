@@ -12,7 +12,7 @@
         </h2>
         </div>
         <div
-            v-if="node[1]"
+            v-if="node[1] && showBody"
             v-show="showBody"
             >
             <div class="card-body" v-if="typeof node[1].entries == 'function'">

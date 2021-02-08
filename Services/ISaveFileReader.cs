@@ -17,8 +17,8 @@ namespace dotdotdot.Services
         SaveFileHeader ReadNextSaveFileHeader(Stream src);
         void SkipHeader(Stream src);
         void SkipObjects(
-            Stream src, 
-            Stream worldObjectSrc, 
+            Stream src,
+            Stream worldObjectSrc,
             out List<Int32> objectTypes
         );
         void UnzipSaveFileObjects(Stream src, Stream dest);
@@ -31,6 +31,7 @@ namespace dotdotdot.Services
         SaveFileProperties ReadNextSaveFileProperties(
             Stream src,
             Stream worldObjectSrc,
+            List<Int32> objectTypes = null,
             bool skipPreviousBlocks = true
         );
         SaveFile ReadNextSaveFile(Stream src);
@@ -42,19 +43,19 @@ namespace dotdotdot.Services
         WorldObjectProperties ReadNextWorldObjectProperties(Stream src, Int32 objectType);
         WorldObjectProperty ReadNextWorldObjectProperty(Stream src, long? count = null);
         object ReadNextWorldObjectPropertyValue(
-            Stream src, 
-            string type, 
-            string subType = null, 
+            Stream src,
+            string type,
+            string subType = null,
             bool firstValue = true,
             bool inArray = false,
             bool inMap = false
         );
         NamedWorldObjectProperty ReadNextNamedWorldObjectProperty(
-            Stream src, 
+            Stream src,
             string name = null
         );
         WorldObjectStructProperty ReadNextWorldObjectDynamicStructProperty(
-            Stream src, 
+            Stream src,
             string type = null
         );
         void SkipNextWorldObjectRef(Stream src);
@@ -86,8 +87,8 @@ namespace dotdotdot.Services
         WorldObjectArrayProperty ReadNextWorldObjectArrayProperty(Stream src, string type);
         object ReadNextWorldObjectStructProperty(Stream src, string type);
         Dictionary<object,object> ReadNextWorldObjectMapProperty(
-            Stream src, 
-            string keyType, 
+            Stream src,
+            string keyType,
             string valueType
         );
         WorldObjectTextProperty ReadNextWorldObjectTextProperty(Stream src);
