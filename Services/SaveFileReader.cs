@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using ICSharpCode.SharpZipLib.Zip.Compression;
@@ -79,6 +80,35 @@ namespace dotdotdot.Services
             );
         }
 
+        public Models.Diff.SaveFile ReadDiff(string filepath2, string filepath1)
+        {
+            Models.Diff.SaveFile diff = new Models.Diff.SaveFile();
+
+            Stream src2 = GetStreamFromFilepath(filepath2);
+            Stream src1 = GetStreamFromFilepath(filepath1);
+
+            MemoryStream worldObjectSrc2 = new MemoryStream();
+            MemoryStream worldObjectSrc1 = new MemoryStream();
+            List<int> objectTypes2;
+            List<int> objectTypes1;
+
+            diff.header = DiffNextSaveFileHeader(src2, src1);
+
+            diff.objects = DiffNextSaveFileObjects(
+                src2,
+                worldObjectSrc2,
+                src1,
+                worldObjectSrc1,
+                out objectTypes2,
+                out objectTypes1,
+                false
+            );
+
+            diff.objects.objects.RemoveAll(item => item.status == Models.Diff.Status.UNCHANGED);
+
+            return diff;
+        }
+
         public SaveFileHeader ReadNextSaveFileHeader(Stream src)
         {
             SaveFileHeader header = new SaveFileHeader();
@@ -90,7 +120,7 @@ namespace dotdotdot.Services
             header.worldProperties = ReadNextString(src);
             header.sessionName = ReadNextString(src);
             header.playTime = ReadNextInt32(src);
-            header.saveDate = new DateTime((long) ReadNextInt64(src));
+            header.saveDate = ReadNextDateTime(src);
             header.sessionVisibility = ReadNextByte(src);
 
             return header;
@@ -105,8 +135,25 @@ namespace dotdotdot.Services
             SkipNextString(src);
             SkipNextString(src);
             SkipNextInt32(src);
-            SkipNextInt64(src);
+            SkipNextDateTime(src);
             SkipNextByte(src);
+        }
+
+        public Models.Diff.SaveFileHeader DiffNextSaveFileHeader(Stream src2, Stream src1)
+        {
+            Models.Diff.SaveFileHeader header = new Models.Diff.SaveFileHeader();
+
+            header.saveHeaderVersion = DiffNextInt32(src2, src1);
+            header.saveVersion = DiffNextInt32(src2, src1);
+            header.buildVersion = DiffNextInt32(src2, src1);
+            header.worldType = DiffNextString(src2, src1);
+            header.worldProperties = DiffNextString(src2, src1);
+            header.sessionName = DiffNextString(src2, src1);
+            header.playTime = DiffNextInt32(src2, src1);
+            header.saveDate = DiffNextDateTime(src2, src1);
+            header.sessionVisibility = DiffNextByte(src2, src1);
+
+            return header;
         }
 
         public void SkipObjects(
@@ -144,7 +191,7 @@ namespace dotdotdot.Services
             Stream src,
             Stream worldObjectSrc,
             out List<Int32> objectTypes,
-            bool skipPreviousBlocks = true
+            bool skipPreviousBlocks = false
         ) {
             SaveFileObjects objects = new SaveFileObjects();
             objectTypes = new List<Int32>();
@@ -166,6 +213,89 @@ namespace dotdotdot.Services
                 WorldObject obj = ReadNextWorldObject(worldObjectSrc);
                 objectTypes.Add(obj.type);
                 objects.objects.Add(obj);
+            }
+
+            return objects;
+        }
+
+        public Models.Diff.SaveFileObjects DiffNextSaveFileObjects(
+            Stream src2,
+            Stream worldObjectSrc2,
+            Stream src1,
+            Stream worldObjectSrc1,
+            out List<Int32> objectTypes2,
+            out List<Int32> objectTypes1,
+            bool skipPreviousBlocks = false
+        ) {
+            Models.Diff.SaveFileObjects objects = new Models.Diff.SaveFileObjects();
+            objectTypes2 = new List<Int32>();
+            objectTypes1 = new List<Int32>();
+
+            if (skipPreviousBlocks) {
+                SkipHeader(src2);
+                SkipHeader(src1);
+            }
+
+            UnzipSaveFileObjects(src2, worldObjectSrc2);
+            UnzipSaveFileObjects(src1, worldObjectSrc1);
+
+            src2.Dispose();
+            src1.Dispose();
+            worldObjectSrc2.Position = 0;
+            worldObjectSrc1.Position = 0;
+
+            objects.size = DiffNextInt32(worldObjectSrc2, worldObjectSrc1);
+            objects.count = DiffNextInt32(worldObjectSrc2, worldObjectSrc1);
+
+            Dictionary<Int32,WorldObject> objects1 = new Dictionary<int, WorldObject>();
+
+            objects.objects = new Models.Diff.DiffList<Models.Diff.WorldObject, WorldObject>();
+            for (int i = 0; i < objects.count.to; i++) {
+                WorldObject obj2 = ReadNextWorldObject(worldObjectSrc2);
+                objectTypes2.Add(obj2.type);
+
+                WorldObject obj1;
+                int j = 0;
+                bool found = false;
+
+                while (j < objects.count.from && objects1.ContainsKey(j)) {
+                    obj1 = objects1.GetValueOrDefault(j);
+                    if (obj2.id == obj1.id) {
+                        objects.objects.Add(new Models.Diff.WorldObject(obj2, obj1));
+                        objects1.Remove(j);
+                        found = true;
+                        break;
+                    }
+
+                    j++;
+                }
+
+                if (found) {
+                    continue;
+                }
+
+                for (; j < objects.count.to; j++) {
+                    obj1 = ReadNextWorldObject(worldObjectSrc1);
+                    objectTypes2.Add(obj1.type);
+
+                    if (obj2.id.Equals(obj1.id)) {
+                        objects.AddObject(new Models.Diff.WorldObject(obj2, obj1));
+                        found = true;
+                        break;
+                    }
+
+                    objects1.Add(j, obj1);
+                }
+
+                if (found) {
+                    continue;
+                }
+
+                objects.AddObject(new Models.Diff.WorldObject(obj2, null));
+            }
+
+            foreach (KeyValuePair<Int32,WorldObject> entry1 in objects1) {
+                objects.AddObject(new Models.Diff.WorldObject(null, entry1.Value));
             }
 
             return objects;
@@ -554,6 +684,14 @@ namespace dotdotdot.Services
 
             return (Byte) bytes[0];
         }
+        public Models.Diff.Property<Byte> DiffNextByte(Stream to, Stream from)
+        {
+            Models.Diff.Property<Byte> val = new Models.Diff.Property<Byte>();
+            val.to = ReadNextByte(to);
+            val.from = ReadNextByte(from);
+
+            return val;
+        }
 
         public void SkipNextInt32(Stream src)
         {
@@ -565,6 +703,31 @@ namespace dotdotdot.Services
             return BitConverter.ToInt32(ReadNext(src, 4));
         }
 
+        public Models.Diff.Property<Int32> DiffNextInt32(Stream to, Stream from)
+        {
+            Models.Diff.Property<Int32> val = new Models.Diff.Property<Int32>();
+            val.to = ReadNextInt32(to);
+            val.from = ReadNextInt32(from);
+
+            return val;
+        }
+        public void SkipNextDateTime(Stream src)
+        {
+            SkipNextInt64(src);
+        }
+        public DateTime ReadNextDateTime(Stream src)
+        {
+            return new DateTime(ReadNextInt64(src));
+        }
+        public Models.Diff.Property<DateTime> DiffNextDateTime(Stream to, Stream from)
+        {
+            Models.Diff.Property<DateTime> val = new Models.Diff.Property<DateTime>();
+            val.to = ReadNextDateTime(to);
+            val.from = ReadNextDateTime(from);
+
+            return val;
+        }
+
         public void SkipNextInt64(Stream src)
         {
             src.Position += 8;
@@ -573,6 +736,14 @@ namespace dotdotdot.Services
         public Int64 ReadNextInt64(Stream src)
         {
             return BitConverter.ToInt64(ReadNext(src, 8));
+        }
+        public Models.Diff.Property<Int64> DiffNextInt64(Stream to, Stream from)
+        {
+            Models.Diff.Property<Int64> val = new Models.Diff.Property<Int64>();
+            val.to = ReadNextInt64(to);
+            val.from = ReadNextInt64(from);
+
+            return val;
         }
 
         public void SkipNextFloat32(Stream src)
@@ -584,6 +755,14 @@ namespace dotdotdot.Services
         {
             return BitConverter.ToSingle(ReadNext(src, 4));
         }
+        public Models.Diff.Property<Single> DiffNextFloat32(Stream to, Stream from)
+        {
+            Models.Diff.Property<Single> val = new Models.Diff.Property<Single>();
+            val.to = ReadNextFloat32(to);
+            val.from = ReadNextFloat32(from);
+
+            return val;
+        }
 
         public Vector2D ReadNextVector2D(Stream src)
         {
@@ -592,6 +771,15 @@ namespace dotdotdot.Services
             v.y = ReadNextFloat32(src);
 
             return v;
+        }
+
+        public Models.Diff.Property<Vector2D> DiffNextVector2D(Stream to, Stream from)
+        {
+            Models.Diff.Property<Vector2D> val = new Models.Diff.Property<Vector2D>();
+            val.to = ReadNextVector2D(to);
+            val.from = ReadNextVector2D(from);
+
+            return val;
         }
 
         public Rotator ReadNextRotator(Stream src)
@@ -883,6 +1071,14 @@ namespace dotdotdot.Services
                 );
                 src.Position++; // avoid \0 char
             }
+
+            return val;
+        }
+        public Models.Diff.Property<string> DiffNextString(Stream to, Stream from)
+        {
+            Models.Diff.Property<string> val = new Models.Diff.Property<string>();
+            val.to = ReadNextString(to);
+            val.from = ReadNextString(from);
 
             return val;
         }

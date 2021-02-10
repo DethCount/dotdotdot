@@ -41,8 +41,8 @@ namespace dotdotdot.Controllers
                         ((new DirectoryInfo(dir)).GetFiles("*.sav"))
                             .OrderByDescending(f => f.LastWriteTime)
                             .Select((FileInfo f) => new ViewModels.ListItem(
-                                f.FullName.Replace(list.basepath, ""), 
-                                f.FullName, 
+                                f.FullName.Replace(list.basepath, ""),
+                                f.FullName,
                                 f.LastWriteTime
                             ))
                     );
@@ -51,7 +51,7 @@ namespace dotdotdot.Controllers
 
             return list;
         }
-        
+
         [Route("api/save-file/list")]
         [Produces("application/json")]
         public JsonResult ListJson()
@@ -120,7 +120,7 @@ namespace dotdotdot.Controllers
         {
             return Json(Objects(filename));
         }
-        
+
         public ViewModels.Properties Properties(string filename)
         {
             ViewModels.Properties properties = new ViewModels.Properties();
@@ -141,6 +141,34 @@ namespace dotdotdot.Controllers
         public JsonResult PropertiesJson(string filename)
         {
             return Json(Properties(filename));
+        }
+
+        public ViewModels.Diff Diff(string filename1, string filename2)
+        {
+            ViewModels.Diff diff = new ViewModels.Diff();
+            diff.basepath = _saveFileReader.GetBasePath();
+            diff.filename1 = filename1;
+            diff.filename2 = filename2;
+
+            if (filename1 != null
+                && filename1.Trim().Length > 0
+                && filename2 != null
+                && filename2.Trim().Length > 0
+            ) {
+                diff.diff = _saveFileReader.ReadDiff(
+                    diff.basepath + filename2,
+                    diff.basepath + filename1
+                );
+            }
+
+            return diff;
+        }
+
+        [Route("api/save-file/{filename2}/diff/{filename1}")]
+        [Produces("application/json")]
+        public JsonResult DiffJson(string filename1, string filename2)
+        {
+            return Json(Diff(filename1, filename2));
         }
     }
 }

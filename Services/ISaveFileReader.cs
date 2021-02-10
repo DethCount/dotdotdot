@@ -34,6 +34,7 @@ namespace dotdotdot.Services
             List<Int32> objectTypes = null,
             bool skipPreviousBlocks = true
         );
+        Models.Diff.SaveFile ReadDiff(string filepath2, string filepath1);
         SaveFile ReadNextSaveFile(Stream src);
         SaveFileChunkHeader ReadNextSaveFileChunkHeader(Stream src);
         void SkipNextWorldObject(Stream src, out Int32 objectType);

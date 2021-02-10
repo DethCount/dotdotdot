@@ -13,7 +13,9 @@ export default createStore({
     saveFileObjectsTree: {},
     saveFileObjectsTreeLoaded: {},
     saveFileProperties: {},
-    saveFilePropertiesLoaded: {}
+    saveFilePropertiesLoaded: {},
+    saveFileDiff: {},
+    saveFileDiffLoaded: {}
   },
   mutations: {
     set_save_file_list_loading (state) {
@@ -54,6 +56,24 @@ export default createStore({
     set_save_file_properties (state, { filename, saveFileProperties }) {
       state.saveFileProperties[filename] = saveFileProperties
       state.saveFilePropertiesLoaded[filename] = true
+    },
+    reset_save_file_diff (state, { filename1, filename2 }) {
+      if (Object.prototype.hasOwnProperty.call(state.saveFileDiff, filename2)) {
+        delete state.saveFileDiff[filename2][filename1]
+      }
+
+      if (!Object.prototype.hasOwnProperty.call(state.saveFileDiff, filename2)) {
+        state.saveFileDiffLoaded[filename2] = {}
+      }
+      state.saveFileDiffLoaded[filename2][filename1] = false
+    },
+    set_save_file_diff (state, { filename1, filename2, diff }) {
+      if (!Object.prototype.hasOwnProperty.call(state.saveFileDiff, filename2)) {
+        state.saveFileDiff[filename2] = {}
+        state.saveFileDiffLoaded[filename2] = {}
+      }
+      state.saveFileDiff[filename2][filename1] = diff
+      state.saveFileDiffLoaded[filename2][filename1] = true
     }
   },
   actions: {
@@ -212,7 +232,29 @@ export default createStore({
       )
 
       commit('set_save_file_objects_tree', { filename, saveFileObjectsTree: objectsByPathAndType })
-      // */
+    },
+    loadSaveFileDiff ({ commit }, { filename1, filename2 }) {
+      commit('reset_save_file_diff', { filename1, filename2 })
+      axios
+        .get(
+          'https://localhost:5001/api/save-file/' +
+            encodeURIComponent(filename2) +
+            '/diff/' +
+            encodeURIComponent(filename1),
+          {
+            responseType: 'json',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json; charset=utf-8;'
+            }
+          }
+        )
+        .then(response => {
+          commit('set_save_file_diff', { filename1, filename2, saveFileDiff: response.data.diff })
+        })
+        .catch(error => {
+          console.error(error)
+        })
     }
   },
   modules: {
