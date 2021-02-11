@@ -1,5 +1,6 @@
 # dotdotdot
 Serveur asp .net core permettant de visualiser les fichiers de sauvegarde du jeu Satisfactory
+Peut aussi fonctionner pour d'autres jeux Unreal Engine 4 mais pas testé
 
 A lancer depuis Visual Code avec une extension C#
 > F5
