@@ -19,7 +19,6 @@ export default {
   },
   computed: {
     diffStatus () {
-      console.log('status', this.node[1])
       if (typeof this.node[1] === 'object' &&
         Object.prototype.hasOwnProperty.call(this.node[1], 'status')
       ) {

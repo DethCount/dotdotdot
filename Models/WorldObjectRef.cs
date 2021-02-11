@@ -11,7 +11,8 @@ namespace dotdotdot.Models
         {
             return null != obj
                 && obj.GetType().Equals(obj.GetType())
-                && obj.GetHashCode() == this.GetHashCode();
+                && ((WorldObjectRef) obj).instanceName == this.instanceName
+                && ((WorldObjectRef) obj).rootObject == this.rootObject;
         }
 
         public override int GetHashCode()

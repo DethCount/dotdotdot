@@ -306,55 +306,46 @@ namespace dotdotdot.Services
             Dictionary<Int32,WorldObject> objects1 = new Dictionary<int, WorldObject>();
 
             objects.objects = new Models.Diff.DiffList<Models.Diff.WorldObject, WorldObject>();
+            int obj1Idx = 0;
             for (int i = 0; i < objects.count.to; i++) {
                 WorldObject obj2 = ReadNextWorldObject(worldObjectSrc2);
                 objectTypes2.Add(obj2.type);
 
                 WorldObject obj1;
-                int j = 0;
                 bool found = false;
 
-                while (j < i && j < objects.count.from) {
-                    if (!objects1.ContainsKey(j)) {
-                        j++;
+                foreach (KeyValuePair<int,WorldObject> entry1 in objects1) {
+                    if (!obj2.id.Equals(entry1.Value.id)) {
                         continue;
                     }
 
-                    obj1 = objects1.GetValueOrDefault(j);
-                    if (obj2.id == obj1.id) {
-                        objects.AddObject(new Models.Diff.WorldObject(obj2, obj1));
-                        objects1.Remove(j);
-                        found = true;
-                        break;
-                    }
-
-                    j++;
+                    objects.AddObject(
+                        new Models.Diff.WorldObject(obj2, entry1.Value)
+                    );
+                    objects1.Remove(entry1.Key);
+                    found = true;
                 }
 
                 if (found) {
                     continue;
                 }
 
-                for (; j < objects.count.from; j++) {
-                    if (objects1.ContainsKey(j)) {
-                        continue;
-                    }
-
+                for (; obj1Idx < objects.count.from; obj1Idx++) {
                     try {
                         obj1 = ReadNextWorldObject(worldObjectSrc1);
+                        objectTypes1.Add(obj1.type);
                     } catch (Exception e) {
                         throw e;
                     }
 
-                    objectTypes2.Add(obj1.type);
-
                     if (obj2.id.Equals(obj1.id)) {
                         objects.AddObject(new Models.Diff.WorldObject(obj2, obj1));
                         found = true;
+                        obj1Idx++;
                         break;
                     }
 
-                    objects1.Add(j, obj1);
+                    objects1.Add(obj1Idx, obj1);
                 }
 
                 if (found) {
@@ -363,6 +354,8 @@ namespace dotdotdot.Services
 
                 objects.AddObject(new Models.Diff.WorldObject(obj2, null));
             }
+
+            objects.objects.RemoveAll(item => item.status == Models.Diff.Status.UNCHANGED);
 
             foreach (KeyValuePair<Int32,WorldObject> entry1 in objects1) {
                 objects.AddObject(
@@ -373,22 +366,21 @@ namespace dotdotdot.Services
                 );
             }
 
-            if (objects.count.from > objects.count.to) {
-                for (int i = objects.count.to; i < objects.count.from; i++) {
-                    if (objects1.ContainsKey(i)) {
-                        continue;
-                    }
+            for (; obj1Idx < objects.count.from; obj1Idx++) {
+                try {
+                    WorldObject obj1 = ReadNextWorldObject(worldObjectSrc1);
+                    objectTypes1.Add(obj1.type);
 
                     objects.AddObject(
                         new Models.Diff.WorldObject(
                             null,
-                            ReadNextWorldObject(worldObjectSrc1)
+                            obj1
                         )
                     );
+                } catch (Exception e) {
+                    throw e;
                 }
             }
-
-            objects.objects.RemoveAll(item => item.status == Models.Diff.Status.UNCHANGED);
 
             return objects;
         }
