@@ -80,8 +80,10 @@ namespace dotdotdot.Services
             );
         }
 
-        public Models.Diff.SaveFile ReadDiff(string filepath2, string filepath1)
-        {
+        public Models.Diff.SaveFile ReadDiff(
+            string filepath2,
+            string filepath1
+        ) {
             Models.Diff.SaveFile diff = new Models.Diff.SaveFile();
 
             Stream src2 = GetStreamFromFilepath(filepath2);
@@ -104,9 +106,63 @@ namespace dotdotdot.Services
                 false
             );
 
-            diff.objects.objects.RemoveAll(item => item.status == Models.Diff.Status.UNCHANGED);
-
             return diff;
+        }
+
+        public Models.Diff.SaveFileHeader ReadHeaderDiff(
+            string filepath2,
+            string filepath1
+        ) {
+            return DiffNextSaveFileHeader(
+                GetStreamFromFilepath(filepath2),
+                GetStreamFromFilepath(filepath1)
+            );
+        }
+
+        public Models.Diff.SaveFileObjects ReadObjectsDiff(
+            string filepath2,
+            string filepath1
+        ) {
+            Stream src2 = GetStreamFromFilepath(filepath2);
+            Stream src1 = GetStreamFromFilepath(filepath1);
+
+            MemoryStream worldObjectSrc2 = new MemoryStream();
+            MemoryStream worldObjectSrc1 = new MemoryStream();
+            List<int> objectTypes2;
+            List<int> objectTypes1;
+
+            return DiffNextSaveFileObjects(
+                src2,
+                worldObjectSrc2,
+                src1,
+                worldObjectSrc1,
+                out objectTypes2,
+                out objectTypes1,
+                true
+            );
+        }
+
+        public Models.Diff.SaveFileProperties ReadPropertiesDiff(
+            string filepath2,
+            string filepath1
+        ) {
+            Stream src2 = GetStreamFromFilepath(filepath2);
+            Stream src1 = GetStreamFromFilepath(filepath1);
+
+            MemoryStream worldObjectSrc2 = new MemoryStream();
+            MemoryStream worldObjectSrc1 = new MemoryStream();
+            List<int> objectTypes2 = null;
+            List<int> objectTypes1 = null;
+
+            return DiffNextSaveFileProperties(
+                src2,
+                worldObjectSrc2,
+                src1,
+                worldObjectSrc1,
+                objectTypes2,
+                objectTypes1,
+                true
+            );
         }
 
         public SaveFileHeader ReadNextSaveFileHeader(Stream src)
@@ -258,10 +314,15 @@ namespace dotdotdot.Services
                 int j = 0;
                 bool found = false;
 
-                while (j < objects.count.from && objects1.ContainsKey(j)) {
+                while (j < i && j < objects.count.from) {
+                    if (!objects1.ContainsKey(j)) {
+                        j++;
+                        continue;
+                    }
+
                     obj1 = objects1.GetValueOrDefault(j);
                     if (obj2.id == obj1.id) {
-                        objects.objects.Add(new Models.Diff.WorldObject(obj2, obj1));
+                        objects.AddObject(new Models.Diff.WorldObject(obj2, obj1));
                         objects1.Remove(j);
                         found = true;
                         break;
@@ -274,8 +335,17 @@ namespace dotdotdot.Services
                     continue;
                 }
 
-                for (; j < objects.count.to; j++) {
-                    obj1 = ReadNextWorldObject(worldObjectSrc1);
+                for (; j < objects.count.from; j++) {
+                    if (objects1.ContainsKey(j)) {
+                        continue;
+                    }
+
+                    try {
+                        obj1 = ReadNextWorldObject(worldObjectSrc1);
+                    } catch (Exception e) {
+                        throw e;
+                    }
+
                     objectTypes2.Add(obj1.type);
 
                     if (obj2.id.Equals(obj1.id)) {
@@ -295,8 +365,30 @@ namespace dotdotdot.Services
             }
 
             foreach (KeyValuePair<Int32,WorldObject> entry1 in objects1) {
-                objects.AddObject(new Models.Diff.WorldObject(null, entry1.Value));
+                objects.AddObject(
+                    new Models.Diff.WorldObject(
+                        null,
+                        entry1.Value
+                    )
+                );
             }
+
+            if (objects.count.from > objects.count.to) {
+                for (int i = objects.count.to; i < objects.count.from; i++) {
+                    if (objects1.ContainsKey(i)) {
+                        continue;
+                    }
+
+                    objects.AddObject(
+                        new Models.Diff.WorldObject(
+                            null,
+                            ReadNextWorldObject(worldObjectSrc1)
+                        )
+                    );
+                }
+            }
+
+            objects.objects.RemoveAll(item => item.status == Models.Diff.Status.UNCHANGED);
 
             return objects;
         }
@@ -334,6 +426,40 @@ namespace dotdotdot.Services
                     throw e;
                 }
             }
+
+            return properties;
+        }
+
+        public Models.Diff.SaveFileProperties DiffNextSaveFileProperties(
+            Stream src2,
+            Stream worldObjectSrc2,
+            Stream src1,
+            Stream worldObjectSrc1,
+            List<Int32> objectTypes2 = null,
+            List<Int32> objectTypes1 = null,
+            bool skipPreviousBlocks = true
+        ) {
+            Models.Diff.SaveFileProperties properties = new Models.Diff.SaveFileProperties();
+
+            if (skipPreviousBlocks) {
+                SkipHeader(src2);
+                SkipHeader(src1);
+                objectTypes2 = new List<Int32>();
+                SkipObjects(src2, worldObjectSrc2, out objectTypes2);
+                objectTypes1 = new List<Int32>();
+                SkipObjects(src1, worldObjectSrc1, out objectTypes1);
+            }
+
+            properties.count = new Models.Diff.Property<Int32>();
+            properties.count.to = ReadNextInt32(worldObjectSrc2);
+            properties.count.from = ReadNextInt32(worldObjectSrc1);
+            if (objectTypes2.Count != properties.count.to
+                || objectTypes1.Count != properties.count.from
+            ) {
+                throw new Exception("Incoherence between object list and properties list");
+            }
+
+            // TODO
 
             return properties;
         }

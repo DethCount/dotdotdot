@@ -1,10 +1,10 @@
-namespace dotdotdot.Models.View.SaveFile
+namespace dotdotdot.Models.View.SaveFile.Diff
 {
-    public class Diff
+    public class Read
     {
         public string basepath;
         public string filename1;
         public string filename2;
-        public object diff;
+        public Models.Diff.SaveFile file;
     }
 }

@@ -14,8 +14,25 @@ namespace dotdotdot.Services
         SaveFileHeader ReadHeader(string filepath);
         SaveFileObjects ReadObjects(string filepath);
         SaveFileProperties ReadProperties(string filepath);
+        Models.Diff.SaveFile ReadDiff(
+            string filepath2,
+            string filepath1
+        );
+        Models.Diff.SaveFileHeader ReadHeaderDiff(
+            string filepath2,
+            string filepath1
+        );
+        Models.Diff.SaveFileObjects ReadObjectsDiff(
+            string filepath2,
+            string filepath1
+        );
+        Models.Diff.SaveFileProperties ReadPropertiesDiff(
+            string filepath2,
+            string filepath1
+        );
         SaveFileHeader ReadNextSaveFileHeader(Stream src);
         void SkipHeader(Stream src);
+        Models.Diff.SaveFileHeader DiffNextSaveFileHeader(Stream src2, Stream src1);
         void SkipObjects(
             Stream src,
             Stream worldObjectSrc,
@@ -26,7 +43,16 @@ namespace dotdotdot.Services
             Stream src,
             Stream worldObjectSrc,
             out List<Int32> objectTypes,
-            bool skipPreviousBlocks = true
+            bool skipPreviousBlocks = false
+        );
+        Models.Diff.SaveFileObjects DiffNextSaveFileObjects(
+            Stream src2,
+            Stream worldObjectSrc2,
+            Stream src1,
+            Stream worldObjectSrc1,
+            out List<Int32> objectTypes2,
+            out List<Int32> objectTypes1,
+            bool skipPreviousBlocks = false
         );
         SaveFileProperties ReadNextSaveFileProperties(
             Stream src,
@@ -34,7 +60,15 @@ namespace dotdotdot.Services
             List<Int32> objectTypes = null,
             bool skipPreviousBlocks = true
         );
-        Models.Diff.SaveFile ReadDiff(string filepath2, string filepath1);
+        Models.Diff.SaveFileProperties DiffNextSaveFileProperties(
+            Stream src2,
+            Stream worldObjectSrc2,
+            Stream src1,
+            Stream worldObjectSrc1,
+            List<Int32> objectTypes2 = null,
+            List<Int32> objectTypes1 = null,
+            bool skipPreviousBlocks = true
+        );
         SaveFile ReadNextSaveFile(Stream src);
         SaveFileChunkHeader ReadNextSaveFileChunkHeader(Stream src);
         void SkipNextWorldObject(Stream src, out Int32 objectType);
@@ -65,13 +99,21 @@ namespace dotdotdot.Services
         WorldObjectInterfaceProperty ReadNextWorldObjectInterfaceProperty(Stream src);
         void SkipNextByte(Stream src);
         Byte ReadNextByte(Stream src);
+        Models.Diff.Property<Byte> DiffNextByte(Stream to, Stream from);
         void SkipNextInt32(Stream src);
         Int32 ReadNextInt32(Stream src);
+        Models.Diff.Property<Int32> DiffNextInt32(Stream to, Stream from);
+        void SkipNextDateTime(Stream src);
+        DateTime ReadNextDateTime(Stream src);
+        Models.Diff.Property<DateTime> DiffNextDateTime(Stream to, Stream from);
         void SkipNextInt64(Stream src);
         Int64 ReadNextInt64(Stream src);
+        Models.Diff.Property<Int64> DiffNextInt64(Stream to, Stream from);
         void SkipNextFloat32(Stream src);
         Single ReadNextFloat32(Stream src);
+        Models.Diff.Property<Single> DiffNextFloat32(Stream to, Stream from);
         Vector2D ReadNextVector2D(Stream src);
+        Models.Diff.Property<Vector2D> DiffNextVector2D(Stream to, Stream from);
         Rotator ReadNextRotator(Stream src);
         void SkipNextVector(Stream src);
         Vector ReadNextVector(Stream src);
@@ -95,6 +137,7 @@ namespace dotdotdot.Services
         WorldObjectTextProperty ReadNextWorldObjectTextProperty(Stream src);
         void SkipNextString(Stream src);
         string ReadNextString(Stream src, int? length = null);
+        Models.Diff.Property<string> DiffNextString(Stream to, Stream from);
         byte[] ReadNext(Stream src, int dataLen);
     }
 }

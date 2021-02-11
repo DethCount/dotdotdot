@@ -1,17 +1,15 @@
-import Tree from '@/components/Tree/Tree/Tree.vue'
+import { defineAsyncComponent } from 'vue'
 
 export default {
   name: 'SaveFileObjects',
   components: {
-    Tree
+    Tree: defineAsyncComponent(() => import('@/components/Tree/Tree/Tree.vue')),
+    Spinner: defineAsyncComponent(() => import('@/components/Spinner/Spinner.vue'))
   },
   props: ['filename'],
   data () {
     return {
-      objects: null,
-      objectsLoaded: false,
-      properties: null,
-      propertiesLoaded: false,
+      loaded: false,
       tree: null
     }
   },
@@ -36,7 +34,7 @@ export default {
       (newValue, oldValue) => {
         if (newValue !== null) {
           this.tree = newValue
-          this.objectsLoaded = true
+          this.loaded = true
         }
       }
     )

@@ -6,7 +6,7 @@
                     <th>Field</th>
                     <th>Value</th>
                 </thead>
-                <tbody v-if="loaded">
+                <tbody>
                     <tr>
                         <td>Filename</td>
                         <td>{{ filename }}</td>
@@ -19,7 +19,7 @@
             </table>
         </div>
         <div class="col-12" v-else>
-            <h3>Loading...</h3>
+            <Spinner></Spinner>
         </div>
     </div>
 </template>

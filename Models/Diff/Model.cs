@@ -15,14 +15,16 @@ namespace dotdotdot.Models.Diff
                 Type t = this.GetType();
 
                 foreach (FieldInfo field in this.GetType().GetFields()) {
-                    if (this.fieldChanged(field)) {
-                        return Status.MODIFIED;
+                    Status s = this.fieldChanged(field);
+                    if (s != Status.UNCHANGED) {
+                        return s;
                     }
                 }
 
                 foreach (PropertyInfo property in this.GetType().GetProperties()) {
-                    if (this.propertyChanged(property)) {
-                        return Status.MODIFIED;
+                    Status s = this.propertyChanged(property);
+                    if (s != Status.UNCHANGED) {
+                        return s;
                     }
                 }
 
@@ -30,7 +32,7 @@ namespace dotdotdot.Models.Diff
             }
         }
 
-        protected bool fieldChanged(FieldInfo field)
+        protected Status fieldChanged(FieldInfo field)
         {
             PropertyInfo statusProp = field.FieldType.GetProperty("status");
             if (statusProp != null
@@ -41,15 +43,15 @@ namespace dotdotdot.Models.Diff
                 if (val != null) {
                     Status propStatus = (Status) statusProp.GetValue(val);
                     if (propStatus != Status.UNCHANGED) {
-                        return true;
+                        return propStatus;
                     }
                 }
             }
 
-            return false;
+            return Status.UNCHANGED;
         }
 
-        protected bool propertyChanged(PropertyInfo property)
+        protected Status propertyChanged(PropertyInfo property)
         {
             PropertyInfo statusProp = property.PropertyType.GetProperty("status");
             if (statusProp != null
@@ -60,12 +62,12 @@ namespace dotdotdot.Models.Diff
                 if (val != null) {
                     Status propStatus = (Status) statusProp.GetValue(val);
                     if (propStatus != Status.UNCHANGED) {
-                        return true;
+                        return propStatus;
                     }
                 }
             }
 
-            return false;
+            return Status.UNCHANGED;
         }
     }
 }

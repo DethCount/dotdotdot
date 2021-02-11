@@ -1,5 +1,10 @@
+import { defineAsyncComponent } from 'vue'
+
 export default {
   name: 'SaveFileList',
+  components: {
+    Spinner: defineAsyncComponent(() => import('@/components/Spinner/Spinner.vue'))
+  },
   data () {
     return {
       items: null,

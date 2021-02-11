@@ -143,9 +143,9 @@ namespace dotdotdot.Controllers
             return Json(Properties(filename));
         }
 
-        public ViewModels.Diff Diff(string filename1, string filename2)
+        public ViewModels.Diff.Read Diff(string filename1, string filename2)
         {
-            ViewModels.Diff diff = new ViewModels.Diff();
+            ViewModels.Diff.Read diff = new ViewModels.Diff.Read();
             diff.basepath = _saveFileReader.GetBasePath();
             diff.filename1 = filename1;
             diff.filename2 = filename2;
@@ -155,7 +155,7 @@ namespace dotdotdot.Controllers
                 && filename2 != null
                 && filename2.Trim().Length > 0
             ) {
-                diff.diff = _saveFileReader.ReadDiff(
+                diff.file = _saveFileReader.ReadDiff(
                     diff.basepath + filename2,
                     diff.basepath + filename1
                 );
@@ -169,6 +169,97 @@ namespace dotdotdot.Controllers
         public JsonResult DiffJson(string filename1, string filename2)
         {
             return Json(Diff(filename1, filename2));
+        }
+
+        public ViewModels.Diff.Header HeaderDiff(string filename1, string filename2)
+        {
+            ViewModels.Diff.Header diff = new ViewModels.Diff.Header();
+            diff.basepath = _saveFileReader.GetBasePath();
+            diff.filename1 = filename1;
+            diff.filename2 = filename2;
+
+            if (filename1 != null
+                && filename1.Trim().Length > 0
+                && filename2 != null
+                && filename2.Trim().Length > 0
+            ) {
+                diff.header = _saveFileReader.ReadHeaderDiff(
+                    diff.basepath + filename2,
+                    diff.basepath + filename1
+                );
+            }
+
+            return diff;
+        }
+
+        [Route("api/save-file/{filename2}/diff/{filename1}/header")]
+        [Produces("application/json")]
+        public JsonResult HeaderDiffJson(
+            string filename1,
+            string filename2
+        ) {
+            return Json(HeaderDiff(filename1, filename2));
+        }
+
+        public ViewModels.Diff.Objects ObjectsDiff(string filename1, string filename2)
+        {
+            ViewModels.Diff.Objects diff = new ViewModels.Diff.Objects();
+            diff.basepath = _saveFileReader.GetBasePath();
+            diff.filename1 = filename1;
+            diff.filename2 = filename2;
+
+            if (filename1 != null
+                && filename1.Trim().Length > 0
+                && filename2 != null
+                && filename2.Trim().Length > 0
+            ) {
+                diff.objects = _saveFileReader.ReadObjectsDiff(
+                    diff.basepath + filename2,
+                    diff.basepath + filename1
+                );
+            }
+
+            return diff;
+        }
+
+        [Route("api/save-file/{filename2}/diff/{filename1}/objects")]
+        [Produces("application/json")]
+        public JsonResult ObjectsDiffJson(
+            string filename1,
+            string filename2
+        ) {
+            return Json(ObjectsDiff(filename1, filename2));
+        }
+
+
+        public ViewModels.Diff.Properties PropertiesDiff(string filename1, string filename2)
+        {
+            ViewModels.Diff.Properties diff = new ViewModels.Diff.Properties();
+            diff.basepath = _saveFileReader.GetBasePath();
+            diff.filename1 = filename1;
+            diff.filename2 = filename2;
+
+            if (filename1 != null
+                && filename1.Trim().Length > 0
+                && filename2 != null
+                && filename2.Trim().Length > 0
+            ) {
+                diff.properties = _saveFileReader.ReadPropertiesDiff(
+                    diff.basepath + filename2,
+                    diff.basepath + filename1
+                );
+            }
+
+            return diff;
+        }
+
+        [Route("api/save-file/{filename2}/diff/{filename1}/properties")]
+        [Produces("application/json")]
+        public JsonResult PropertiesDiffJson(
+            string filename1,
+            string filename2
+        ) {
+            return Json(PropertiesDiff(filename1, filename2));
         }
     }
 }

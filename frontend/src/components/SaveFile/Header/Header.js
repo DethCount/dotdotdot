@@ -1,5 +1,10 @@
+import { defineAsyncComponent } from 'vue'
+
 export default {
   name: 'SaveFileHeader',
+  components: {
+    Spinner: defineAsyncComponent(() => import('@/components/Spinner/Spinner.vue'))
+  },
   props: ['filename'],
   data () {
     return {
