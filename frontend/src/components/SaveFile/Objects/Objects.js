@@ -3,6 +3,7 @@ import { defineAsyncComponent } from 'vue'
 export default {
   name: 'SaveFileObjects',
   components: {
+    TreeNode: defineAsyncComponent(() => import('@/components/Tree/TreeNode/TreeNode.vue')),
     Tree: defineAsyncComponent(() => import('@/components/Tree/Tree/Tree.vue')),
     Spinner: defineAsyncComponent(() => import('@/components/Spinner/Spinner.vue'))
   },
@@ -10,7 +11,8 @@ export default {
   data () {
     return {
       loaded: false,
-      tree: null
+      tree: null,
+      nodeComponent: 'TreeNode'
     }
   },
   mounted () {

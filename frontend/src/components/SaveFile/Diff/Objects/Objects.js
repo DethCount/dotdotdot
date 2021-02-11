@@ -4,14 +4,19 @@ export default {
   name: 'SaveFileObjectsDiff',
   components: {
     Tree: defineAsyncComponent(() => import('@/components/Tree/Tree/Tree.vue')),
-    Spinner: defineAsyncComponent(() => import('@/components/Spinner/Spinner.vue'))
+    Spinner: defineAsyncComponent(() => import('@/components/Spinner/Spinner.vue')),
+    Diff: defineAsyncComponent(() => import('@/components/Diff/Diff/Diff.vue'))
   },
   props: ['filename1', 'filename2'],
   data () {
     return {
       tree: null,
-      objectsLoaded: false
+      objectsLoaded: false,
+      nodeComponent: 'TreeNode',
+      scalarComponent: 'Diff'
     }
+  },
+  computed: {
   },
   mounted () {
     this.$store.dispatch(

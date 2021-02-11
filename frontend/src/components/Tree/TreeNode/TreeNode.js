@@ -4,17 +4,31 @@ import * as d3 from 'd3'
 export default {
   name: 'TreeNode',
   components: {
-    Tree: defineAsyncComponent(() => import('@/components/Tree/Tree/Tree.vue'))
+    Tree: defineAsyncComponent(
+      () => import('@/components/Tree/Tree/Tree.vue')
+    ),
+    Diff: defineAsyncComponent(
+      () => import('@/components/Diff/Diff/Diff.vue')
+    )
   },
-  props: ['node'],
+  props: ['node', 'nodeComponent', 'scalarComponent'],
   data () {
     return {
       showBody: false
     }
   },
   computed: {
+    diffStatus () {
+      console.log('status', this.node[1])
+      if (typeof this.node[1] === 'object' &&
+        Object.prototype.hasOwnProperty.call(this.node[1], 'status')
+      ) {
+        return this.node[1].status
+      }
+
+      return undefined
+    },
     showValues () {
-      console.log(this)
       return this.node[1].values ||
         (
           Object.prototype.hasOwnProperty
@@ -42,29 +56,6 @@ export default {
         this.node[1].property === null ||
         typeof this.node[1].property !== 'object' ||
         !Object.prototype.hasOwnProperty.call(this.node[1].property, 'name')
-    }
-  },
-  methods: {
-    isRowableValue (value) {
-      return value === null ||
-        value === undefined ||
-        typeof value === 'string' ||
-        typeof value !== 'object'
-    },
-    showTableRow (key, value) {
-      console.log(key, value, this.showValueRow, this.isRowableValue(value))
-      return (
-        key !== 'properties' &&
-        key !== 'property' &&
-        key !== 'values' &&
-        key !== 'value'
-      ) || (
-        key === 'value' &&
-        this.showValueRow
-      ) || (
-        key === 'property' &&
-        this.showPropertyRow
-      )
     },
     hasProperties () {
       return (
@@ -76,6 +67,35 @@ export default {
         (
           this.node[1].properties instanceof Map ||
           this.node[1].properties instanceof Array
+        )
+      )
+    }
+  },
+  methods: {
+    isRowableValue (value) {
+      return value === null ||
+        value === undefined ||
+        typeof value === 'string' ||
+        typeof value !== 'object'
+    },
+    showTableRow (key, value) {
+      return (
+        key !== 'properties' &&
+        key !== 'property' &&
+        key !== 'values' &&
+        key !== 'value' &&
+        key !== 'status'
+      ) || (
+        key === 'value' &&
+        this.showValueRow
+      ) || (
+        key === 'property' &&
+        this.showPropertyRow
+      ) || (
+        key === 'status' && (
+          value !== 'added' &&
+          value !== 'deleted' &&
+          value !== 'modified'
         )
       )
     },

@@ -3,8 +3,9 @@ import { defineAsyncComponent } from 'vue'
 export default {
   name: 'SaveFileHeaderDiff',
   components: {
+    Spinner: defineAsyncComponent(() => import('@/components/Spinner/Spinner.vue')),
     Tree: defineAsyncComponent(() => import('@/components/Tree/Tree/Tree.vue')),
-    Spinner: defineAsyncComponent(() => import('@/components/Spinner/Spinner.vue'))
+    Diff: defineAsyncComponent(() => import('@/components/Diff/Diff/Diff.vue'))
   },
   props: ['filename1', 'filename2'],
   data () {

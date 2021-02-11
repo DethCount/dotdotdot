@@ -1,7 +1,12 @@
 <template>
     <div class="accordion">
         <div v-bind:key="node[0]" v-for="node of nodes">
-            <TreeNode v-bind:node="node"></TreeNode>
+            <component
+                :is="nodeComponent"
+                :node="node"
+                :nodeComponent="nodeComponent"
+                :scalarComponent="scalarComponent"
+                ></component>
         </div>
     </div>
 </template>

@@ -17,17 +17,7 @@
                     </tr>
                     <tr v-bind:key="key" v-for="(value, key) in header">
                         <td>{{ key }}</td>
-                        <td v-if="value.status == 'modified'">
-                            <span class="deleted">{{ value.from }}</span>
-                            <span class="added">{{ value.to }}</span>
-                        </td>
-                        <td v-else-if="value.status == 'added'">
-                            <span class="added">{{ value.to }}</span>
-                        </td>
-                        <td v-else-if="value.status == 'deleted'">
-                            <span class="deleted">{{ value.from }}</span>
-                        </td>
-                        <td v-else>{{ value }}</td>
+                        <td><Diff :value="value"></Diff></td>
                     </tr>
                 </tbody>
             </table>
